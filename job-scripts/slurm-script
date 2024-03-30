@@ -1,0 +1,22 @@
+#!/bin/bash
+
+#SBATCH --job-name="cloud-cr"
+#SBATCH --mail-type=NONE         # Mail events (NONE, BEGIN, END, FAIL, ALL)
+#SBATCH --mail-user=alankardutta@iisc.ac.in    # Where to send mail.  Set this to your email address
+#SBATCH -p debug
+#SBATCH -t 2-48:00:00  #dd-hh:mm:ss
+#SBATCH -n 168
+#SBATCH --output=%x-%j.log
+
+echo "Working Directory = $(pwd)"
+
+cd $SLURM_SUBMIT_DIR
+export PROG="./pluto"
+# export ARGS="./pluto -catalyst 2 temperature-pipeline.py density-pipeline.py"
+
+# module load catalyst/v2
+module load hdf5/parallel
+
+mkdir -p output/Log_Files
+
+srun $PROG $ARGS

@@ -50,3 +50,18 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+
+#PLUTO specific
+*.h5
+*.out
+*.xmf
+*.dbl
+*.flt
+*.log
+*.pyc
+output*
+analysis.dat
+definitions.h
+pluto.ini
+pluto
+makefile
