@@ -59,7 +59,7 @@ dkms.conf
 *.flt
 *.log
 *.pyc
-output*
+output-*
 analysis.dat
 definitions.h
 pluto.ini
