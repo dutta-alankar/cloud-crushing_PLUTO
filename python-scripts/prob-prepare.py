@@ -35,8 +35,8 @@ Y_solar = 0.2703
 Z_solar = 0.0143
 
 # Set the simulation features
-cooling = False
-catalyst = True
+cooling = True
+catalyst = False
 auto_compile = True
 boost = True
 
@@ -60,7 +60,7 @@ dump_time = 1.0*tcc
 analysis_time = 0.1*tcc
 t_stop = 25*tcc
 
-log_steps = 1000
+log_steps = 100
 
 Xp = X_solar * (1 - metallicity * Z_solar) / (X_solar + Y_solar)
 Yp = Y_solar * (1 - metallicity * Z_solar) / (X_solar + Y_solar)
@@ -88,7 +88,7 @@ print(f"UNIT_DENSITY  = {UNIT_DENSITY/(mu*mp):.2e} cm^-3")
 print(f"UNIT_LENGTH   = {UNIT_LENGTH/pc:.2e} pc")
 print(f"UNIT_VELOCITY = {UNIT_VELOCITY/1.0e+05:.2e} km s^-1")
 
-output_dir = f"output-{'b' if boost else 'nb'}-chi{chi:.1f}eta{eta:.1f}mach{mach:.2f}tcoolmBtcc{tcoolmBtcc:.2e}Tcl{Tcl:.2e}met{metallicity:.2f}-{'cool' if cooling else 'no_cool'}-res{RclBdcell}"
+output_dir = f"output-{'wb' if boost else 'nb'}-chi{chi:.1f}eta{eta:.1f}mach{mach:.2f}tcoolmBtcc{tcoolmBtcc:.2e}Tcl{Tcl:.2e}met{metallicity:.2f}-{'w_cool' if cooling else 'n_cool'}-res{RclBdcell}"
 
 os.system(f"mkdir -p ../{output_dir}/Log_Files")
 os.system(f"mkdir -p ../{output_dir}/snapshots")

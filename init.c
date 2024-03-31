@@ -66,7 +66,8 @@ void InitDomain (Data *d, Grid *grid)
 
   double oth_mu[4];
   double mu = MeanMolecularWeight((double*)d->Vc, oth_mu);
-  printLog("mu = %.3f\tmue = %.3f\tmui = %.3f\n",mu, oth_mu[0], oth_mu[1]);
+  printLog("> Mean molecular weights: \n"); 
+  printLog("  mu = %.3f\tmue = %.3f\tmui = %.3f\n\n",mu, oth_mu[0], oth_mu[1]);
 
   double nmin     = 1e-6;
   g_smallDensity  = (nmin*((CONST_mp*mu)/UNIT_DENSITY));

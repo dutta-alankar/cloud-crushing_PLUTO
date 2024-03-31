@@ -19,6 +19,8 @@ void ApplyBoost (const Data *d, double dt, timeStep *Dts, Grid *grid)
 
   x1  = grid->x[IDIR];   x2 = grid->x[JDIR];   x3 = grid->x[KDIR];
   dx1 = grid->dx[IDIR]; dx2 = grid->dx[JDIR]; dx3 = grid->dx[KDIR];
+
+  double x_offset = g_inputParam[XOFFSET];
   
   /* --- variables used --- */
   double rho, vx1;
@@ -63,7 +65,7 @@ void ApplyBoost (const Data *d, double dt, timeStep *Dts, Grid *grid)
   #endif
   g_tracerLeftEdge =  tracerLeftEdge;
   
-  if ( (fabs(tracerLeftEdge-grid->xbeg_glob[IDIR])<8.0) && (vx1_cl>0) ) {
+  if ( (fabs(tracerLeftEdge-grid->xbeg_glob[IDIR])>(2.*x_offset)) && (vx1_cl>0) ) {
     g_vcloud += vx1_cl; // frame velocity wrt lab
 
     TOT_LOOP(k,j,i){

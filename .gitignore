@@ -65,3 +65,4 @@ definitions.h
 pluto.ini
 pluto
 makefile
+CatalystAdaptor.h
