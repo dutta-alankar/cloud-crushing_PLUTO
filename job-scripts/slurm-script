@@ -17,6 +17,4 @@ export PROG="./pluto"
 # module load catalyst/v2
 module load hdf5/parallel
 
-mkdir -p output/Log_Files
-
 srun $PROG $ARGS
