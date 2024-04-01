@@ -12,6 +12,7 @@
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
+#include "local_pluto.h"
 
 extern double gCooling_x1, gCooling_x2, gCooling_x3;
 
@@ -34,7 +35,7 @@ void Radiat (double *v, double *rhs)
 
   if (T_tab == NULL){
     FILE *fcool;
-    printLog (" > Reading table from disk...\n");
+    printLog (" > Reading cooltable.dat from disk...\n");
     fcool = fopen("cooltable.dat","r");
     if (fcool == NULL){
       printLog ("! Radiat: cooltable.dat could not be found.\n");
@@ -62,15 +63,13 @@ void Radiat (double *v, double *rhs)
     v[RHOE] = prs/(g_gamma - 1.0);
   }
 
-  double X_solar = 0.7154, Y_solar = 0.2703, Z_solar = 0.0143;
-  double fracZ   = g_inputParam[ZMET]; 
-  // completely ionized plasma; Z varied independent of nH and nHe; Metals==Oxygen
-  double Xp      = X_solar*(1-fracZ*Z_solar)/(X_solar+Y_solar), Yp = Y_solar*(1-fracZ*Z_solar)/(X_solar+Y_solar), Zp = fracZ*Z_solar;
-
+  mu  = MeanMolecularWeight(v, dummy);
+  muH = dummy[2];
+  mue = dummy[0];
   T   = prs/v[RHO]*KELVIN*mu;
 
-  if (T != T){
-    printf ("! Radiat(): Nan found: rho = %12.6e, prs = %12.6e\n",v[RHO], prs);
+  if (T != T || T==0.){
+    printLog ("! Radiat(): Nan found: rho = %12.6e, prs = %12.6e\n",v[RHO], prs);
     QUIT_PLUTO(1);
   }
 
@@ -106,7 +105,7 @@ void Radiat (double *v, double *rhs)
 /* -----------------------------------------------
     Compute r.h.s
    ----------------------------------------------- */
-  double nH = v[RHO]*UNIT_DENSITY*Xp/CONST_amu; //UNIT_DENSITY/CONST_amu*H_MASS_FRAC/CONST_AH*v[RHO];
+  double nH = v[RHO]*UNIT_DENSITY/(muH*CONST_amu); //UNIT_DENSITY/CONST_amu*H_MASS_FRAC/CONST_AH*v[RHO];
   double ne = v[RHO]*UNIT_DENSITY/(mue*CONST_amu); //nH*(1.0 + 0.5*CONST_AZ*FRAC_Z);
   double n  = v[RHO]*UNIT_DENSITY/(mu*CONST_amu);
   dT        = T_tab[khi] - T_tab[klo];
