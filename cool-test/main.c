@@ -30,9 +30,7 @@
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
-#include "local_pluto.h"
 #include "globals.h"
-#include "local_gvars.h"
 #ifdef USE_CATALYST
 #include "CatalystAdaptor.h"
 #endif
@@ -73,7 +71,6 @@ int main (int argc, char *argv[])
   timeStep Dts;
   cmdLine  cmd_line;
   Runtime  runtime;
-  g_vcloud = 0.;
 
 /* --------------------------------------------------------
    0. Initialize environment
@@ -137,7 +134,6 @@ int main (int argc, char *argv[])
   Dts.invDt_particles = 1.0/runtime.first_dt;
 
   g_stepNumber = 0;
-  g_anl_dt = runtime.anl_dt;
   
   #ifdef USE_CATALYST
   do_catalyst_initialization(cmd_line.catScriptCount, cmd_line.catScriptNames);
@@ -288,10 +284,6 @@ int main (int argc, char *argv[])
     if (g_stepNumber%2 == 1) g_dt = NextTimeStep(&Dts, &runtime, grd);
     #endif
     
-    #if BOOST != NO
-    ApplyBoost (&data, g_dt, &Dts, grd);
-    #endif
-
     g_stepNumber++;
     first_step = 0;
   }

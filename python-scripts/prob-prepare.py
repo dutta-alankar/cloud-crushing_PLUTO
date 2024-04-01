@@ -43,16 +43,16 @@ boost = True
 # Set the simulation parameters
 chi  = 100
 eta  = 100
-mach = 1.2
-tcoolmBtcc = 0.5
-Tcl = 1.0e+04 # K
-cloud_pos = 4.0 # Rcl
+mach = 1.5
+tcoolmBtcc = 0.50
+Tcl = 4.0e+04 # K
+cloud_pos = 10.0 # Rcl
 metallicity = 1.0 # ZSun
 gamma = 5/3.
 ncl = 0.1 # cm^-3
 
-wind_extent = 50 # Rcl
-prp_extent  = 15 # Rcl
+wind_extent = 70 # Rcl
+prp_extent  = 22 # Rcl
 RclBdcell = 8
 
 tcc = np.sqrt(chi)
@@ -66,7 +66,8 @@ Xp = X_solar * (1 - metallicity * Z_solar) / (X_solar + Y_solar)
 Yp = Y_solar * (1 - metallicity * Z_solar) / (X_solar + Y_solar)
 Zp = metallicity * Z_solar
 
-cooltable = np.loadtxt("../cooltable.dat")
+cooltable_name = "cooltable-SD93.dat"
+cooltable = np.loadtxt(f"../cooltables/{cooltable_name}")
 LAMBDA = interp1d(cooltable[:,0], cooltable[:,1], fill_value="extrapolate")
 mu = 1./(2*Xp+0.75*Yp+0.5625*Zp)
 nwind = ncl/chi
@@ -84,18 +85,24 @@ UNIT_DENSITY = nwind*mu*mp
 UNIT_LENGTH = Rcl
 UNIT_VELOCITY = vwind
 
+# Seems like GO estimate is less by a factor of 2
+alpha = 1.0
+Rgo  = 2 * (Tcl/1e4)**(5/2.)*mach/(((Pmix/kB)/1e3)*(LAMBDA(np.sqrt(chi)*Tcl)/10**-21.4) ) *(chi/100) * (alpha**-1) # pc
+Rcl_est  = (tcoolmBtcc**-1) * Rgo # pc
+
 print(f"UNIT_DENSITY  = {UNIT_DENSITY/(mu*mp):.2e} cm^-3")
 print(f"UNIT_LENGTH   = {UNIT_LENGTH/pc:.2e} pc")
 print(f"UNIT_VELOCITY = {UNIT_VELOCITY/1.0e+05:.2e} km s^-1")
 
 output_dir = f"output-{'wb' if boost else 'nb'}-chi{chi:.1f}eta{eta:.1f}mach{mach:.2f}tcoolmBtcc{tcoolmBtcc:.2e}Tcl{Tcl:.2e}met{metallicity:.2f}-{'w_cool' if cooling else 'n_cool'}-res{RclBdcell}"
 
-os.system(f"mkdir -p ../{output_dir}/Log_Files")
-os.system(f"mkdir -p ../{output_dir}/snapshots")
-if cooling:
-    os.system("cp ../makefiles/makefile-tab_cool ../makefile")
-else:
-    os.system("cp ../makefiles/makefile-no_cool ../makefile")
+if auto_compile:
+    os.system(f"mkdir -p ../{output_dir}/Log_Files")
+    os.system(f"mkdir -p ../{output_dir}/snapshots")
+    if cooling:
+        os.system("cp ../makefiles/makefile-tab_cool ../makefile")
+    else:
+        os.system("cp ../makefiles/makefile-no_cool ../makefile")
 
 def_content = f"""
 #define  PHYSICS                        HD
@@ -127,7 +134,7 @@ def_content = f"""
 #define  CHI                            0
 #define  ETA                            1
 #define  MACH                           2
-#define  tCoolMbtCC                     3
+#define  TCOOL_TCC                      3
 #define  TCL                            4
 #define  XOFFSET                        5
 #define  ZMET                           6
@@ -218,7 +225,7 @@ particles_tab       -1.0   -1
 CHI                {chi:.1f}
 ETA                {eta:.1f}
 MACH               {mach:.2f}
-tCoolMbtCC         {tcoolmBtcc:.2e}
+TCOOL_TCC          {tcoolmBtcc:.2e}
 TCL                {Tcl:.2e}
 XOFFSET            {cloud_pos:.1f}
 ZMET               {metallicity:.2f}
@@ -227,16 +234,16 @@ ZMET               {metallicity:.2f}
 with open("../pluto.ini", "w") as ascii:
     ascii.write(ini_content[1:])
 
-details = sp.getoutput("uname -a").split()
+details = os.uname()
 year = sp.getoutput('date +"%Y"')
 user = sp.getoutput("echo $USER")
 work_dir = sp.getoutput("cd .. && pwd")
 sys_name = details[0]
-node_name = sp.getoutput("hostname")
+node_name = details[1]
 release = details[2]
-arch = details[-2]
+arch = details[-1]
 byte = sp.getoutput('lscpu | grep Endian').split()[-2].lower()
-version = f'{details[4]} {" ".join(details[6:11])} {year}'
+version = details[-2]
 compiler_details = sp.getoutput('cat ../makefile | grep "ARCH" | grep "="').split()[-1]
 mpi_compiler = sp.getoutput('cat ../PLUTO/Config/Linux.mpicc.defs | grep "CC"').split()[-1]
 c_compiler = re.sub('[\W_]+', '', sp.getoutput(f"{mpi_compiler} --version").split()[0])
@@ -253,7 +260,7 @@ ARCH           = {arch}
 BYTE_ORDER     = {byte}
 VERSION        = {version}
 PLUTO_DIR      = {pluto_loc}
-PLUTO_VERSION  = {pluto_ver}
+PLUTO_VERSION  = "{pluto_ver}"
 C_COMPILER     = {c_compiler}
 MPI_C_COMPILER = {mpi_compiler}
 """
@@ -272,7 +279,7 @@ if auto_compile:
     os.system(f"mv ../pluto ../{output_dir}")
     os.system(f"cp ../job-scripts/slurm-script ../{output_dir}")
     if cooling:
-        os.system(f"cp ../cooltable.dat ../{output_dir}")
-
-print(f"To run the job change directory using: \ncd ../{output_dir}")
-
+        os.system(f"cp ../cooltables/{cooltable_name} ../{output_dir}/cooltable.dat")
+    print(f"To run the job change directory using: \ncd ../{output_dir}")
+else:
+    print(f"Output dir: \n{output_dir}")

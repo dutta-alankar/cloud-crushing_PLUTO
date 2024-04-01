@@ -1,0 +1,7 @@
+ # HDF5_LIB      = /modules/comp_libs/hdf5/parallel/
+ # ZLIB          = /home/alankar/modules/zlib/
+ # INCLUDE_DIRS += -I$(HDF5_LIB)/include/
+ # LDFLAGS      += -L$(HDF5_LIB)/lib/ -L$(ZLIB)/lib -lhdf5 -lz
+ LDFLAGS       += -lhdf5 -lz
+ CFLAGS        += -DUSE_HDF5 -g
+ OBJ           +=  hdf5_io.o

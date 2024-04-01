@@ -70,6 +70,7 @@ void InitDomain (Data *d, Grid *grid)
   printLog("  mu = %.3f\tmue = %.3f\tmui = %.3f\n\n",mu, oth_mu[0], oth_mu[1]);
 
   double nmin     = 1e-6;
+  g_minCoolingTemp = g_inputParam[TCL];
   g_smallDensity  = (nmin*((CONST_mp*mu)/UNIT_DENSITY));
   g_smallPressure = (nmin*g_minCoolingTemp*CONST_kB)/(UNIT_DENSITY*pow(UNIT_VELOCITY,2));
   
@@ -83,6 +84,8 @@ void InitDomain (Data *d, Grid *grid)
   double chi      = g_inputParam[CHI];
   double eta      = g_inputParam[ETA];
   double x_offset = g_inputParam[XOFFSET];
+
+  g_dist_lab = x_offset;
 
   /* ---- Main Loop ---- */
   TOT_LOOP(k,j,i) {
@@ -108,177 +111,249 @@ void Analysis (const Data *d, Grid *grid)
  *
  *********************************************************************** */
 {
-  int i, j, k;
-  double *x1, *x2, *x3;
-  double *dx1, *dx2, *dx3;
-  #ifdef PARALLEL
-  int count = 128;
-  double sendArray[count], recvArray[count];
-  #endif
-  
-  /* set grid pointers */
-  x1  = grid->x[IDIR];   x2 = grid->x[JDIR];   x3 = grid->x[KDIR];
-  dx1 = grid->dx[IDIR]; dx2 = grid->dx[JDIR]; dx3 = grid->dx[KDIR];
+  int k, j, i, nv;
+  int yr = 365*24*60*60;
+  double t_anl;
+  static double trc0 = 0.;
+  static double trc0_all = 0.;
+  static double chi, eta, mach, Tcl, tcc, factor_rho, factor_temp, mu, rho_cl;
+  static int first = 0;
+  static long int nstep = -1;
+  double temperature_cut[] = {1.2, 2.0, 3.0, 5.0, 10.0};
+  double rho_cut[] = {1.2, 2.0, 3.0, 5.0, 10.0};
 
-  /* variables used */
-  double rho, prs, vx1, vx2, vx3, Temp, dV;
+  double *x1 = grid->x[IDIR];
+  double *x2 = grid->x[JDIR];
+  double *x3 = grid->x[KDIR];
 
-  double tot_mass = 0.,  tot_mom1 = 0.,  tot_mom2 = 0.,  tot_mom3 = 0.;
-  double tot_TE = 0., tot_vol=0.;
-  double vx1_avg = 0.,   vx2_avg = 0.,   vx3_avg = 0.,   v_rms = 0.;
+  if (first==0) {
+    first = 1;
+    double oth_mu[4];
+    mu   = MeanMolecularWeight((double*)d->Vc, oth_mu);
+    chi    = g_inputParam[CHI];
+    eta    = g_inputParam[ETA];
+    mach   = g_inputParam[MACH];
+    Tcl    = g_inputParam[TCL];    
 
-  double dummy[4];
-  double mu = MeanMolecularWeight((double*)d->Vc, dummy);
-  
-  /* wind properties in code units */
-  double rhoWind = 1.0; 
-  double mach    = g_inputParam[MACH];
-  double pWind   = 1.0/(g_gamma*pow(mach, 2.));
-  double vWind   = 1.0;  
-
-  /* cloud properties in code units */
-  double chi      = g_inputParam[CHI];
-  double x_offset = g_inputParam[XOFFSET];
-
-  /* calculating global averages first */
-  DOM_LOOP(k,j,i) {
-    dV  = grid->dV[k][j][i];
-    rho = d->Vc[RHO][k][j][i];
-    prs = d->Vc[PRS][k][j][i];
-    vx1 = d->Vc[VX1][k][j][i];  
-    vx2 = d->Vc[VX2][k][j][i]; 
-    vx3 = d->Vc[VX3][k][j][i];
-
-    tot_vol  += dV;
-    vx1_avg += vx1 * (1-d->Vc[TRC][k][j][i])* dV; // average wind velocity
-    vx2_avg += vx2 * (1-d->Vc[TRC][k][j][i])* dV;
-    vx3_avg += vx3 * (1-d->Vc[TRC][k][j][i])* dV;
-    
-    tot_TE   += prs * (1-d->Vc[TRC][k][j][i])* dV / (g_gamma-1.0);
+    /* code units */
+    tcc      = sqrt(chi);
+    factor_rho    = sqrt(chi)/3;
+    factor_temp   = sqrt(eta)/3;
+    rho_cl   = chi;
   }
-  /* ------ Parallel data reduction ------ */
-  #ifdef PARALLEL
-  int tmp = 0;
-  count = 5;
-  sendArray[tmp++] = tot_vol;
-  sendArray[tmp++] = vx1_avg;   sendArray[tmp++] = vx2_avg;    sendArray[tmp++] = vx3_avg;
-  sendArray[tmp++] = tot_TE;
-
-  MPI_Allreduce(sendArray, recvArray, count, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-  MPI_Barrier(MPI_COMM_WORLD);
-
-  tmp = 0;
-  tot_vol = recvArray[tmp++];
-  vx1_avg = recvArray[tmp++];    vx2_avg = recvArray[tmp++];   vx3_avg = recvArray[tmp++];  
-  tot_mom1 = recvArray[tmp++];   tot_mom2 = recvArray[tmp++];  tot_mom3 = recvArray[tmp++];
-  tot_TE  = recvArray[tmp++];
-
-  MPI_Barrier(MPI_COMM_WORLD);
-  #endif
- 
-  vx1_avg /= tot_vol;    vx2_avg /= tot_vol;    vx3_avg /= tot_vol;
-
-  double cloud_mass = 0., cloud_vol = 0., trc_mass = 0.;
-  double cmx1_cl = 0., cmx2_cl = 0., cmx3_cl = 0.;
-  double vx1_cl = 0., vx2_cl = 0., vx3_cl = 0.;
-
-  tot_vol = 0.;
-  DOM_LOOP(k,j,i) {
-    dV  = grid->dV[k][j][i];
-    rho = d->Vc[RHO][k][j][i];
-    prs = d->Vc[PRS][k][j][i];
-    vx1 = d->Vc[VX1][k][j][i];
-    vx2 = d->Vc[VX2][k][j][i];
-    vx3 = d->Vc[VX3][k][j][i];
-    
-    Temp = (prs/rho) * pow(UNIT_VELOCITY,2.)*(mu*CONST_mp) / CONST_kB; // Kelvin
-
-    tot_vol   += (1-d->Vc[TRC][k][j][i]) * dV; // background wind
-    tot_mass  += rho * (1-d->Vc[TRC][k][j][i])* dV;
-
-    v_rms   += (pow(vx1-vx1_avg, 2.) + pow(vx2-vx2_avg, 2.) + pow(vx3-vx3_avg, 2.)) * (1-d->Vc[TRC][k][j][i]) * dV;
-    
-    if (rho >= sqrt(chi)/3.) {
-       cloud_mass += rho * dV; // density based
-       cloud_vol  += dV;
+  if (g_stepNumber==0){
+    double dV;
+    DOM_LOOP(k,j,i){
+      dV = grid->dV[k][j][i];
+      trc0  += d->Vc[RHO][k][j][i]*d->Vc[TRC][k][j][i]*dV;
     }
-    trc_mass += (rho*d->Vc[TRC][k][j][i]) * dV;
-    // center of mass of various components
-    cmx1_cl += x1[k] * (rho*d->Vc[TRC][k][j][i]) * dV; // along wind
-    cmx2_cl += x2[k] * (rho*d->Vc[TRC][k][j][i]) * dV;
-    cmx3_cl += x3[k] * (rho*d->Vc[TRC][k][j][i]) * dV;
-    vx1_cl  += vx1 * (rho*d->Vc[TRC][k][j][i]) * dV;
-    vx2_cl  += vx2 * (rho*d->Vc[TRC][k][j][i]) * dV;
-    vx3_cl  += vx3 * (rho*d->Vc[TRC][k][j][i]) * dV;
+    #ifdef PARALLEL
+    int transfer_size = 1;
+    int transfer = 0;
+    double sendArray[transfer_size], recvArray[transfer_size];
+    sendArray[transfer++] = trc0;
+    MPI_Allreduce (sendArray, recvArray, transfer_size, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+    transfer = 0;
+    trc0_all = recvArray[transfer++];
+    #else
+    trc0_all    = trc0;
+    #endif
   }
-  /* --- end of main loop ---- */
+  if (g_stepNumber==0 && trc0_all == 0) {
+    printLog("> Analysis(): Check initialization! Likely some error as no cloud tracer has been detected!\n");
+    QUIT_PLUTO(1);
+  }
 
-  /* ------ Parallel data reduction ------ */
-  #ifdef PARALLEL
-  count = 11;
-  tmp = 0;
-
-  sendArray[tmp++] = tot_mass;    sendArray[tmp++] = tot_vol; 
-  sendArray[tmp++] = cloud_mass;  sendArray[tmp++] = cloud_vol;   
-  sendArray[tmp++] = cmx1_cl;     sendArray[tmp++] = cmx2_cl;     sendArray[tmp++] = cmx3_cl;
-  sendArray[tmp++] = vx1_cl;      sendArray[tmp++] = vx2_cl;      sendArray[tmp++] = vx3_cl;
-  sendArray[tmp++] = trc_mass;  
-
-  MPI_Allreduce(sendArray, recvArray, count, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-  MPI_Barrier(MPI_COMM_WORLD);
-
-  tmp = 0;
-  tot_mass = recvArray[tmp++];    tot_vol = recvArray[tmp++];
-
-  cloud_mass = recvArray[tmp++];  cloud_vol = recvArray[tmp++];
-  cmx1_cl = recvArray[tmp++];     cmx2_cl = recvArray[tmp++];     cmx3_cl = recvArray[tmp++];
-  vx1_cl = recvArray[tmp++];      vx2_cl = recvArray[tmp++];      vx3_cl = recvArray[tmp++];
-  trc_mass = recvArray[tmp++];
-  #endif
-  /* --- end of parallel data reduction --- */ 
-
-  /* --- Write ascii file "analysis.dat" to disk --- */
-  if (prank == 0) {
-     cmx1_cl /= cloud_mass;   cmx2_cl /= cloud_mass;    cmx3_cl /= cloud_mass;
-     vx1_cl /= cloud_mass;    vx2_cl /= cloud_mass;     vx3_cl /= cloud_mass;
-   
-     FILE *fp;
-     char fname[512];
-     static double tpos = -1.0;
-     sprintf (fname, "%s/analysis.dat", RuntimeGet()->output_dir);
-     if (g_stepNumber == 0) {    /* Open for writing only when we're starting */
-       fp = fopen(fname,"w");     /* from beginning */
-       fprintf (fp, "# %s\t\t%s\t\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
-                  "(0) t",        "(1) dt",       "(2) mass",      "(3) TE",
-                  "(4) Vx1Avg",   "(5) Vx2Avg",   "(6) Vx3Avg",
-                  "(7) Cl_mass",  "(8) Cl_vol",   "(9) CMX1_cl",
-                  "(10) CMX2_cl", "(11) CMX3_cl", "(12) Vx1_cl",
-                  "(13) Vx2_cl",  "(14) Vx3_cl",  "(15) trc_mass",
-                  "(16) leftEdge"
-               );
-     }
-     else {                  /* write if current time t>0*/
-       /* Don't duplicate on restart */
-       if (tpos < 0.0) {       /* obtain time coordinate of to last written row*/
-          char   sline[512];
-          fp = fopen(fname,"r");
-          while (fgets(sline, 512, fp))  {}
-          sscanf(sline, "%lf\n",&tpos);  /* tpos = time of the last written row */
-          fclose(fp);
-       }
-       fp = fopen(fname,"a");
-    }
-    if (g_time > tpos) {
-       fprintf (fp, "%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\n",
-                   g_time,      g_dt,        tot_mass,       tot_TE, 
-                   vx1_avg,     vx2_avg,     vx3_avg,
-                   cloud_mass,  cloud_vol,   cmx1_cl,
-                   cmx2_cl,     cmx3_cl,     vx1_cl,
-                   vx2_cl,      vx3_cl,      trc_mass,
-                   g_tracerLeftEdge
-               );
-    }
+  if (trc0_all==0) { // Means we have restarted!
+    g_restart = 1;
+    FILE *fp;
+    char fname[512];
+    int dummy;
+    sprintf (fname, "%s/restart-analysis.out",RuntimeGet()->output_dir);
+    fp = fopen(fname,"r");
+    dummy = fscanf(fp, "%lf", &trc0_all);
+    dummy = fscanf(fp, "%ld", &nstep);
+    dummy = fscanf(fp, "%lf", &t_anl);
     fclose(fp);
+  }
+
+  double Tcutoff = (Tcl>1.0e+04)?Tcl:1.0e+04;
+  double Tmax    = 1.e8;
+
+  if (g_stepNumber<=nstep && g_time<=(t_anl+0.5*g_anl_dt)) return;
+  g_restart = 0;
+
+  double      trc   = 0.,      trc_all    = 0.;
+  double mass_dense = 0., mass_dense_all  = 0.;
+  double vx_cloud = 0., vy_cloud = 0., vz_cloud = 0.;
+  double vx_cloud_all = 0., vy_cloud_all = 0., vz_cloud_all = 0.;
+
+  double mass_cold[(int)(sizeof(temperature_cut) / sizeof(temperature_cut[0]))];
+  double mass_cold_all[(int)(sizeof(temperature_cut) / sizeof(temperature_cut[0]))];
+
+  double mass_cloud[(int)(sizeof(rho_cut) / sizeof(rho_cut[0]))];
+  double mass_cloud_all[(int)(sizeof(rho_cut) / sizeof(rho_cut[0]))];
+
+  for (i=0; i<(int)(sizeof(temperature_cut) / sizeof(temperature_cut[0])); i++){
+    mass_cold[i] = 0.;
+    mass_cold_all[i] = 0.;
+  }
+
+  for (i=0; i<(int)(sizeof(rho_cut) / sizeof(rho_cut[0])); i++){
+    mass_cloud[i] = 0.;
+    mass_cloud_all[i] = 0.;
+  }
+
+  double dV, rByrInj, rho_wind, T_wind, T_gas;
+  int cold_indx;
+  int cloud_indx;
+  rho_wind = 1.0;
+  DOM_LOOP(k,j,i){
+    dV = grid->dV[k][j][i]; // Cell volume
+    trc         += d->Vc[RHO][k][j][i]*d->Vc[TRC][k][j][i]*dV;
+    vx_cloud    += d->Vc[RHO][k][j][i]*d->Vc[VX1][k][j][i]*d->Vc[TRC][k][j][i]*dV;
+    vy_cloud    += d->Vc[RHO][k][j][i]*d->Vc[VX2][k][j][i]*d->Vc[TRC][k][j][i]*dV;
+    vz_cloud    += d->Vc[RHO][k][j][i]*d->Vc[VX3][k][j][i]*d->Vc[TRC][k][j][i]*dV;
+
+    if(d->Vc[RHO][k][j][i] >= (rho_cl/factor_rho))
+      mass_dense += d->Vc[RHO][k][j][i]*dV;
+
+    T_wind = MIN(MAX(eta*Tcl, Tcutoff), Tmax);
+
+    T_gas = (d->Vc[PRS][k][j][i]/d->Vc[RHO][k][j][i])*pow(UNIT_VELOCITY,2)*(CONST_mp*mu)/CONST_kB;
+    for (cloud_indx=0; cloud_indx<(int)(sizeof(rho_cut) / sizeof(rho_cut[0])); cloud_indx++){
+        if (d->Vc[RHO][k][j][i] >= (rho_wind*rho_cut[cloud_indx])){
+          if( T_gas <= (factor_temp*Tcl) )
+            mass_cloud[cloud_indx] += d->Vc[RHO][k][j][i]*dV;
+        }
+    }
+    if( T_gas <= (factor_temp*Tcl) ){ 
+      for (cold_indx=0; cold_indx<(int)(sizeof(temperature_cut) / sizeof(temperature_cut[0])); cold_indx++){
+          if( T_gas <= (T_wind/temperature_cut[cold_indx]) )
+            mass_cold[cold_indx] += d->Vc[RHO][k][j][i]*dV;
+      }
+      /* if (d->Vc[RHO][k][j][i]>(rho_cl/sqrt(chi))) mass_cold += d->Vc[RHO][k][j][i]*dV; */
+      /* if (d->Vc[RHO][k][j][i] >= (rho_cl/factor_rho)) mass_cold += d->Vc[RHO][k][j][i]*dV; */
+    }
+  }
+
+  #ifdef PARALLEL
+  int transfer_size = 5 + (int)(sizeof(temperature_cut) / sizeof(temperature_cut[0])) + (int)(sizeof(rho_cut) / sizeof(rho_cut[0]));
+  int transfer = 0;
+  double sendArray[transfer_size], recvArray[transfer_size];
+  sendArray[transfer++] = trc; sendArray[transfer++] = mass_dense;
+  for (cold_indx=0; cold_indx<(int)(sizeof(temperature_cut) / sizeof(temperature_cut[0])); cold_indx++) {
+    sendArray[transfer++] = mass_cold[cold_indx];
+  }
+  for (cloud_indx=0; cloud_indx<(int)(sizeof(rho_cut) / sizeof(rho_cut[0])); cloud_indx++) {
+    sendArray[transfer++] = mass_cloud[cloud_indx];
+  }
+  sendArray[transfer++] = vx_cloud; sendArray[transfer++] = vy_cloud; sendArray[transfer++] = vz_cloud;
+  MPI_Allreduce (sendArray, recvArray, transfer_size, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD); // TODO: Replace this with Allreduce to improve on communication overhead
+  transfer = 0;
+  trc_all = recvArray[transfer++]; mass_dense_all = recvArray[transfer++];
+  for (cold_indx=0; cold_indx<(int)(sizeof(temperature_cut) / sizeof(temperature_cut[0])); cold_indx++) {
+    mass_cold_all[cold_indx] = recvArray[transfer++];
+  }
+  for (cloud_indx=0; cloud_indx<(int)(sizeof(rho_cut) / sizeof(rho_cut[0])); cloud_indx++) {
+    mass_cloud_all[cloud_indx] = recvArray[transfer++];
+  }
+  vz_cloud_all = recvArray[transfer++]; vy_cloud_all = recvArray[transfer++]; vz_cloud_all = recvArray[transfer++];
+
+  #else
+  trc_all    = trc;
+  mass_dense_all = mass_dense;
+
+  for (cold_indx=0; cold_indx<(int)(sizeof(temperature_cut) / sizeof(temperature_cut[0])); cold_indx++) {
+    mass_cold_all[cold_indx] = mass_cold[cold_indx];
+  }
+  for (cloud_indx=0; cloud_indx<(int)(sizeof(rho_cut) / sizeof(rho_cut[0])); cloud_indx++) {
+    mass_cloud_all[cloud_indx] = mass_cloud[cloud_indx];
+  }
+  vx_cloud_all    = vx_cloud;
+  vy_cloud_all    = vy_cloud;
+  vz_cloud_all    = vz_cloud;
+  #endif
+  vx_cloud_all = vx_cloud_all/trc_all;
+  vy_cloud_all = vy_cloud_all/trc_all;
+  vz_cloud_all = vz_cloud_all/trc_all;
+  trc_all     = trc_all/trc0_all; // trc0_all is M_cloud, ini
+  mass_dense_all = mass_dense_all/trc0_all;
+  for (cold_indx=0; cold_indx<(int)(sizeof(temperature_cut) / sizeof(temperature_cut[0])); cold_indx++) {
+    mass_cold_all[cold_indx] = mass_cold_all[cold_indx]/trc0_all;
+  }
+  for (cloud_indx=0; cloud_indx<(int)(sizeof(rho_cut) / sizeof(rho_cut[0])); cloud_indx++) {
+    mass_cloud_all[cloud_indx] = mass_cloud_all[cloud_indx]/trc0_all;
+  }
+
+  double v_cloud = sqrt(vx_cloud_all*vx_cloud_all + vy_cloud_all*vy_cloud_all + vz_cloud_all*vz_cloud_all);
+  g_dist_lab += (vx_cloud_all+g_vcloud)*g_anl_dt;
+
+  /* ---- Write ascii file "analysis.dat" to disk ---- */
+  if (prank == 0){
+    char fname[512];
+    char buffer1[128], buffer2[128];
+    sprintf(buffer1, "M(rho>rho_cl/%.1f)/M0", factor_rho);
+    sprintf(buffer2, "M(T<%.1f*T_cl)/M0", factor_temp);
+    char *cold_header[(int)(sizeof(temperature_cut) / sizeof(temperature_cut[0]))];
+    char *cloud_header[(int)(sizeof(rho_cut) / sizeof(rho_cut[0]))];
+
+    for (cold_indx=0; cold_indx<(int)(sizeof(temperature_cut) / sizeof(temperature_cut[0])); cold_indx++) {
+      char *dummy1 = (char *)malloc(256*sizeof(char));
+      char *dummy2 = (char *)malloc(256*sizeof(char));
+      cold_header[cold_indx] = (char *)malloc(256*sizeof(char));
+      strcpy(dummy1, buffer2);
+      sprintf(dummy2, " [T(r)<T_w(r)/%.1f]", temperature_cut[cold_indx]);
+      strcat(dummy1, dummy2);
+      strcpy(cold_header[cold_indx], dummy1);
+    }
+
+    for (cloud_indx=0; cloud_indx<(int)(sizeof(rho_cut) / sizeof(rho_cut[0])); cloud_indx++) {
+      cloud_header[cloud_indx] = (char *)malloc(256*sizeof(char));
+      sprintf(cloud_header[cloud_indx], "M (rho(r)>=%.1f rho_w(r))/M0", rho_cut[cloud_indx]);
+    }
+
+    FILE *fp;
+    sprintf (fname, "%s/analysis.dat",RuntimeGet()->output_dir);
+    if (g_stepNumber == 0){ /* Open for writing only when we are starting */
+      fp = fopen(fname,"w"); /* from beginning */
+      fprintf (fp,"# %s\t=\t%.5e\n", "tcc (code)", tcc);
+      fprintf (fp,"# %s\t=\t%.5e\n", "vwind_asymp (code)", UNIT_VELOCITY );
+      // Header
+      fprintf (fp,"# (1)%s\t\t(2)%s\t(3)%s\t\t(4)%s\t\t(5)%s\t\t",
+               "time (code)", "g_dist_lab (code)", "v_cloud (code)", "trc/trc0", buffer1); //, buffer2, "dt (code)");
+      int cont = 5;
+      for (cold_indx=0; cold_indx<(int)(sizeof(temperature_cut) / sizeof(temperature_cut[0])); cold_indx++) {
+        fprintf(fp,"(%d)%s\t\t", ++cont, cold_header[cold_indx]);
+      }
+      for (cloud_indx=0; cloud_indx<(int)(sizeof(rho_cut) / sizeof(rho_cut[0])); cloud_indx++) {
+        fprintf(fp,"(%d)%s\t\t", ++cont, cloud_header[cloud_indx]);
+      }
+      fprintf (fp, "(%d)dt (code)\n", ++cont);
+      fclose(fp);
+    }
+    /* Append numeric data */
+    fp = fopen(fname,"a");
+    fprintf (fp, "%12.6e\t\t%12.6e\t\t%12.6e\t\t%12.6e\t\t%12.6e\t\t\t",
+             g_time, g_dist_lab, v_cloud, trc_all, mass_dense_all);
+    for (cold_indx=0; cold_indx<(int)(sizeof(temperature_cut) / sizeof(temperature_cut[0])); cold_indx++) {
+      fprintf (fp, "%12.6e\t\t\t", mass_cold_all[cold_indx]);
+    }
+    for (cloud_indx=0; cloud_indx<(int)(sizeof(rho_cut) / sizeof(rho_cut[0])); cloud_indx++) {
+      fprintf (fp, "%12.6e\t\t\t", mass_cloud_all[cloud_indx]);
+    }
+    fprintf (fp, "%12.6e\n", g_dt);
+    fclose(fp);
+
+    /* Write restart file */
+    //printLog("Step %d: Writing Analysis restart!\n", g_stepNumber);
+    FILE *frestart;
+    sprintf (fname, "%s/restart-analysis.out", RuntimeGet()->output_dir);
+    frestart = fopen(fname,"w");
+    fprintf (frestart,"%lf\n", trc0_all);
+    fprintf(frestart,"%ld\n", g_stepNumber);
+    fprintf(frestart,"%lf\n", g_time);
+    fclose(frestart);
   }
   /* --- end of writing "analyis.dat" file --- */
 }

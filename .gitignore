@@ -63,6 +63,11 @@ output-*
 analysis.dat
 definitions.h
 pluto.ini
-pluto
 makefile
+pluto
 CatalystAdaptor.h
+cooltable-SD93.dat
+cooltable-new.dat
+cool-test/makefile
+cool-test/output
+cool-test/pluto
