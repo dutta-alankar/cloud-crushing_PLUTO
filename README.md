@@ -32,6 +32,7 @@ Like many other numerical problems, cloud-crushing simulations behave best when 
   - Code length = Cloud radius
   - Code density = Wind density
   - Code velocity = Wind velocity
+
 Using fluid equations rescaled to these units, it can be shown that the gas pressure/temperature is a degenerate quantity in the absence of radiative cooling.
 In these code units, the following are the fluid quantities.
   - Radius of cloud = 1.0
@@ -41,4 +42,5 @@ In these code units, the following are the fluid quantities.
   - Density of the wind = 1.0
   - Velocity of the wind = 1.0
   - Pressure in the wind = $\frac{1}{\gamma \mathcal{M}^2}$
+
 In these code units, the cloud-crushing time has a trivial value $t_{\rm cc} = \sqrt{\chi}$.
