@@ -81,7 +81,8 @@ $\partial_{\rm \tilde{t}}(\tilde{\rho} \tilde{\textbf{v}}) + \tilde{\nabla} . (\
 
 $\partial_{\rm \tilde{t}}(\frac{1}{2}\tilde{\rho} \tilde{v}^2 + \tilde{e}) + \tilde{\nabla} . [(\frac{1}{2}\tilde{\rho} \tilde{v}^2 + \tilde{e} + \tilde{p} )\tilde{\textbf{v}}] = - \zeta \tilde{n}_H^2 \tilde{\Lambda}(\tilde{T)}$.
 
-Here $\zeta = \frac{1}{\gamma (\gamma -1)}\mathcal{M}^{-2} \chi^{-3/2} \left(\chi/\eta\right)^{3/2} \left(\frac{t_{\rm cool, mix}}{t_{\rm cc}}\right)^{-1}\left[\frac{\Lambda(T_0)}{\Lambda(\sqrt{\eta} T_{\rm cl})}\right]$ and $T_0 = \mathcal{M}^2 \gamma \eta T_{\rm cl}$.
+Here $\zeta = \frac{1}{\gamma (\gamma -1)}\mathcal{M}^{-2} \chi^{-3/2} \left(\chi/\eta\right)^{3/2} \left(\frac{t_{\rm cool, mix}}{t_{\rm cc}}\right)^{-1}\left[\frac{\Lambda(T_0)}{\Lambda(\sqrt{\eta} T_{\rm cl})}\right]$ and $T_0 = \mathcal{M}^2 \gamma \eta T_{\rm cl}$. Non-radiative simulations correspond to $\zeta =0$.
+
 With $L_0$, $v_0$ and $\rho_0$ (as presented earlier) as the choice of code units, the initial pressures $\tilde{p}$ in the cloud and the wind in code units are 
 
 $p_{\rm wind}^{\rm (code)} = \frac{n_{\rm wind} k_B T_{\rm wind}}{\rho_0 v_0^2}=\frac{1}{\gamma \mathcal{M}^2}$ and
@@ -91,3 +92,8 @@ $p_{\rm cl}^{\rm (code)} = \frac{n_{\rm cl} k_B T_{\rm cl}}{\rho_0 v_0^2}=\frac{
 By design, $v_{\rm wind}^{\rm (code)} = 1$ and $R_{\rm cl}^{\rm (code)} = 1$.
 
 One can clearly see that any quantity that doesn't appear in either the equations or in the initialization is degenerate. For example, $n_{\rm cl}$ is a degenerate quantity (so are absolute pressure values in the simulation). 
+
+The following cartoon demonstrates the initialization in our code.
+
+![image](https://github.com/dutta-alankar/cloud-crushing_PLUTO/assets/39578361/093a221f-958f-4d92-9467-75b427a90724)
+
