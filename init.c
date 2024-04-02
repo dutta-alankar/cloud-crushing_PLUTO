@@ -303,14 +303,14 @@ void Analysis (const Data *d, Grid *grid)
       char *dummy2 = (char *)malloc(256*sizeof(char));
       cold_header[cold_indx] = (char *)malloc(256*sizeof(char));
       strcpy(dummy1, buffer2);
-      sprintf(dummy2, " [T(r)<T_w(r)/%.1f]", temperature_cut[cold_indx]);
+      sprintf(dummy2, " [T<T_w/%.1f]", temperature_cut[cold_indx]);
       strcat(dummy1, dummy2);
       strcpy(cold_header[cold_indx], dummy1);
     }
 
     for (cloud_indx=0; cloud_indx<(int)(sizeof(rho_cut) / sizeof(rho_cut[0])); cloud_indx++) {
       cloud_header[cloud_indx] = (char *)malloc(256*sizeof(char));
-      sprintf(cloud_header[cloud_indx], "M (rho(r)>=%.1f rho_w(r))/M0", rho_cut[cloud_indx]);
+      sprintf(cloud_header[cloud_indx], "M (rho>=%.1f rho_w)/M0", rho_cut[cloud_indx]);
     }
 
     FILE *fp;

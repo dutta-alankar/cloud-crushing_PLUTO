@@ -59,6 +59,7 @@ dkms.conf
 *.flt
 *.log
 *.pyc
+*.png
 output-*
 analysis.dat
 definitions.h
