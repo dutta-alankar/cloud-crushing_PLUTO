@@ -45,6 +45,6 @@ In these code units, the following are the fluid quantities.
 
 In these code units, the cloud-crushing time has a trivial value $t_{\rm cc} = \sqrt{\chi}$.
 
-As a demonstration of this code, the following is the evolution of cold mass with radiative cooling at different values of $t_{\rm cool, mix}/t_{\rm cc}$. The other parameters are set to ($\chi$, $\eta$, $\mathcal{M}$, $T_{\rm cl}$, $Z/Z_\odot$) = ($100$, $100$, $1.5$, $4 \times 10^{4}$, $1.0$).
+As a demonstration of this code, the following is the evolution of cold mass with radiative cooling at different values of $t_{\rm cool, mix}/t_{\rm cc}$. The other parameters are set to ($\chi$, $\eta$, $\mathcal{M}$, $T_{\rm cl}$, $Z/Z_\odot$) = ($100$, $100$, $1.5$, $4 \times 10^{4}$, $1.0$). In these runs, the Sutherland+93 CIE cooling curve has been used.
 
 ![cloud-mass](https://github.com/dutta-alankar/cloud-crushing_PLUTO/assets/39578361/43e8642a-39b2-44df-9a58-9d5590ef7a89)
