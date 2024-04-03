@@ -46,7 +46,7 @@ for i, tcBtcc in enumerate(tcoolmBtcc):
     output_dir = f"../../output-{'wb' if boost else 'nb'}-chi{chi:.1f}eta{eta:.1f}mach{mach:.2f}tcoolmBtcc{tcBtcc:.2e}Tcl{Tcl:.2e}met{metallicity:.2f}-{'w_cool' if cooling else 'n_cool'}-res{RclBdcell}"
     if output_dir in run_dirs:
         data = np.loadtxt(f"{output_dir}/snapshots/analysis.dat")
-        label = r"$%d \times 10^{%d}$"%(fman(tcBtcc), fexp(tcBtcc))
+        label = r"$%d \times 10^{%d}$"%(np.round(float(fman(tcBtcc))), fexp(tcBtcc))
         '''
         if int(fexp(tcBtcc))==0:
             label = r"$%d$"%fman(tcBtcc)
