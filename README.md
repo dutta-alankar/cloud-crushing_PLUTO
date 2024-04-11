@@ -47,7 +47,7 @@ In these code units, the cloud-crushing time has a trivial value $t_{\rm cc} = \
 
 As a demonstration of this code, the following is the evolution of cold mass with radiative cooling at different values of $t_{\rm cool, mix}/t_{\rm cc}$. The other parameters are set to ($\chi$, $\eta$, $\mathcal{M}$, $T_{\rm cl}$, $Z/Z_\odot$) = ($100$, $100$, $1.5$, $4 \times 10^{4}$, $1.0$). In these runs, the Sutherland+93 CIE cooling curve has been used. In our cluster, each of these runs took around 40 mins on 176 processors (problem size: ($70 \times 20 \times 20$), $R_{\rm cl}/d_{\rm cell}=8$).
 
-![cloud-mass](https://github.com/dutta-alankar/cloud-crushing_PLUTO/assets/39578361/9353ac16-ad7d-4eec-921c-57b3ea6ef38c)
+![cloud-mass](https://github.com/dutta-alankar/cloud-crushing_PLUTO/assets/39578361/bf5ff6cb-65ed-4d9a-b4c1-2e009afe2abe)
 
 ### Theoretical background
 
