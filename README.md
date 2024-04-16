@@ -95,4 +95,5 @@ One can clearly see that any quantity that doesn't appear in either the equation
 
 The following cartoon demonstrates the initialization in our code.
 
-![schematic_cl-crush](https://github.com/dutta-alankar/cloud-crushing_PLUTO/assets/39578361/244a1f64-fc0b-4a89-8a55-a1c2d550b587)
+![CCSetup](https://github.com/dutta-alankar/cloud-crushing_PLUTO/assets/39578361/a31f2fcd-4014-4c80-a57d-d534318bb06d)
+
