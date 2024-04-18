@@ -3,11 +3,14 @@
 # CFLAGS       += -DUSE_CATALYST # -DCATALYST_DEBUG
 # CFLAGS       += -DPARAVIEW_IMPL_DIR=\"/modules/paraview/lib/catalyst\" -DVTK_SILENCE_GET_VOID_POINTER_WARNINGS
 
+# If you want to debug the code, especially when seg faults occur
+# CFLAGS        += -g
+
  # HDF5_LIB      = /modules/comp_libs/hdf5/parallel/
- # ZLIB          = /home/alankar/modules/zlib/
+ # ZLIB          = /modules/comp_libs/zlib/
  # INCLUDE_DIRS += -I$(HDF5_LIB)/include/
  # LDFLAGS      += -L$(HDF5_LIB)/lib/ -L$(ZLIB)/lib -lhdf5 -lz
  LDFLAGS       += -lhdf5 -lz
- CFLAGS        += -DUSE_HDF5 -g
+ CFLAGS        += -DUSE_HDF5
  OBJ           +=  hdf5_io.o
  OBJ           +=  apply_boost.o
