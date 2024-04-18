@@ -5,7 +5,7 @@
 ########################################################################
 
 CC       = mpicc
-CFLAGS   = -c -O3 -Wundef -g
+CFLAGS   = -c -O3 -Wundef
 LDFLAGS  = -lm
 
 PARALLEL = TRUE
