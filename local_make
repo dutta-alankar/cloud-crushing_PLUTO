@@ -4,7 +4,8 @@
 # CFLAGS       += -DPARAVIEW_IMPL_DIR=\"/modules/paraview/lib/catalyst\" -DVTK_SILENCE_GET_VOID_POINTER_WARNINGS
 
 # If you want to debug the code, especially when seg faults occur
-# CFLAGS        += -g
+# You can also choose the debug.defs from the configuration
+# CFLAGS        += -g -O0 -Wall -Wno-unused-but-set-variable -Wno-unused-variable
 
  # HDF5_LIB      = /modules/comp_libs/hdf5/parallel/
  # ZLIB          = /modules/comp_libs/zlib/
