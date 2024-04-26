@@ -7,11 +7,15 @@
 # You can also choose the debug.defs from the configuration
 # CFLAGS        += -g -O0 -Wall -Wno-unused-but-set-variable -Wno-unused-variable
 
- # HDF5_LIB      = /modules/comp_libs/hdf5/parallel/
- # ZLIB          = /modules/comp_libs/zlib/
- # INCLUDE_DIRS += -I$(HDF5_LIB)/include/
- # LDFLAGS      += -L$(HDF5_LIB)/lib/ -L$(ZLIB)/lib -lhdf5 -lz
- LDFLAGS       += -lhdf5 -lz
+ HDF5_LIB      = /home/alankar/Documents/demo-setup/comp_libs/hdf5/parallel
+ ZLIB          = /home/alankar/Documents/demo-setup/comp_libs/zlib
+ SZLIB         = /home/alankar/Documents/demo-setup/comp_libs/szip
+ # MPI_LIB       = /home/alankar/Documents/demo-setup/comp_libs/mpich
+ INCLUDE_DIRS += -I$(MPI_LIB)/include
+ INCLUDE_DIRS += -I$(HDF5_LIB)/include/
+ LDFLAGS      += $(HDF5_LIB)/lib/libhdf5.a $(ZLIB)/lib/libz.a $(SZLIB)/lib/libsz.a
+ # LDFLAGS      += $(MPI_LIB)/lib/libmpi.a
+ # LDFLAGS       += -lhdf5 -lz
  CFLAGS        += -DUSE_HDF5
  OBJ           +=  hdf5_io.o
  OBJ           +=  apply_boost.o
