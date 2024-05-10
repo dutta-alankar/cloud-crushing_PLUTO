@@ -40,5 +40,6 @@ matplotlib.rcParams["axes.labelpad"] = 8.0
 matplotlib.pyplot.rcParams["font.size"] = 28
 matplotlib.rcParams["legend.handlelength"] = 2
 # matplotlib.rcParams["figure.dpi"] = 200
+matplotlib.rcParams["figure.figsize"] = (13,10)
 matplotlib.rcParams["axes.axisbelow"] = True
 # plt.style.use('dark_background')
