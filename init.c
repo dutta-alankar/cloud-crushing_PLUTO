@@ -140,9 +140,9 @@ void Analysis (const Data *d, Grid *grid)
 
     #if COOLING==NO || COOLING==TABULATED || COOLING==TOWNSEND 
     double oth_mu[4];
-    double mu = MeanMolecularWeight((double*)d->Vc, oth_mu);
+    mu = MeanMolecularWeight((double*)d->Vc, oth_mu);
     #else
-    double mu = MeanMolecularWeight((double*)d->Vc);
+    mu = MeanMolecularWeight((double*)d->Vc);
     #endif
 
     chi    = g_inputParam[CHI];
