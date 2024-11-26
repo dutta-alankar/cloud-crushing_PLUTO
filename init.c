@@ -64,19 +64,10 @@ void InitDomain (Data *d, Grid *grid)
   double *x2 = grid->x[JDIR];
   double *x3 = grid->x[KDIR];
 
-  #if COOLING==NO || COOLING==TABULATED || COOLING==TOWNSEND 
   double oth_mu[4];
   double mu = MeanMolecularWeight((double*)d->Vc, oth_mu);
-  #else
-  double mu = MeanMolecularWeight((double*)d->Vc);
-  #endif
-
   printLog("> Mean molecular weights: \n"); 
-  #if COOLING==NO || COOLING==TABULATED || COOLING==TOWNSEND 
   printLog("  mu = %.3f\tmue = %.3f\tmui = %.3f\n\n",mu, oth_mu[0], oth_mu[1]);
-  #else
-  printLog("  mu = %.3f\n\n",mu);
-  #endif
 
   double nmin     = 1e-6;
   g_minCoolingTemp = g_inputParam[TCL];
@@ -137,14 +128,8 @@ void Analysis (const Data *d, Grid *grid)
 
   if (first==0) {
     first = 1;
-
-    #if COOLING==NO || COOLING==TABULATED || COOLING==TOWNSEND 
     double oth_mu[4];
-    double mu = MeanMolecularWeight((double*)d->Vc, oth_mu);
-    #else
-    double mu = MeanMolecularWeight((double*)d->Vc);
-    #endif
-
+    mu   = MeanMolecularWeight((double*)d->Vc, oth_mu);
     chi    = g_inputParam[CHI];
     eta    = g_inputParam[ETA];
     mach   = g_inputParam[MACH];
@@ -219,7 +204,7 @@ void Analysis (const Data *d, Grid *grid)
     mass_cloud_all[i] = 0.;
   }
 
-  double dV, rho_wind, T_wind, T_gas;
+  double dV, rByrInj, rho_wind, T_wind, T_gas;
   int cold_indx;
   int cloud_indx;
   rho_wind = 1.0;
@@ -433,12 +418,8 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
   double x_offset = g_inputParam[XOFFSET];
   double Tcl      = g_inputParam[TCL];
 
-  #if COOLING==NO || COOLING==TABULATED || COOLING==TOWNSEND 
   double dummy[4];
   double mu = MeanMolecularWeight((double*)d->Vc, dummy);
-  #else
-  double mu = MeanMolecularWeight((double*)d->Vc);
-  #endif
 
   if (side == 0) {    /* -- check solution inside domain -- */
     TOT_LOOP(k,j,i) {
