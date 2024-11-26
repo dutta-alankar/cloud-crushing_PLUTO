@@ -15,7 +15,7 @@
   - Cooling time of mixed gas to cloud crushing time $t_{\rm cool, mix}/t_{\rm cc}$, which sets the cloud size in physical units.
   - Cloud temperature $T_{\rm cl}$.
   - Metallicity with respect to Solar $Z/Z_\odot$.
-  - The initial position of the center of the spherical cloud in the simulation domain in the wind direction.
+  - The initial position of the center of the spherical cloud in the simulation domain in the wind direction `cloud_pos` (the user defined variable XOFFSET).
   - Adiabatic index of the gas $\gamma$.
 - Additionally, to get quantities in physical units (CGS), one needs to set the cloud density $n_{\rm cl}$, which doesn't directly come up in our problem, but sets the code units to CGS conversion factor.
 - Other additional flags are also set in the script. The following are some of the most important ones.
@@ -27,7 +27,7 @@
 - Edit the sample `local_make` to link `hdf5` library \& `Catalyst` in-situ visualization library (if enabled).
 - Sample job scripts in `slurm` is provided in the `jobscripts` directory that can be configured according to the cluster environment where the code will be running.
 > [!NOTE]  
-> The Python script is self-contained and generates everything necessary for these cloud-crushing simulations. There is **no** need to run `setup.py` as is traditionally done in `PLUTO`.
+> The Python script `python-scripts/prob-prepare.py` is self-contained and generates everything necessary for these cloud-crushing simulations. There is **no** need to run `setup.py` as is traditionally done in `PLUTO`.
 ### Additional info
 Like many other numerical problems, cloud-crushing simulations behave best when the code units reflect the dimensions involved in the problem. One such choice is as follows.
   - Code length = Cloud radius
