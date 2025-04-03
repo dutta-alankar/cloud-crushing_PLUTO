@@ -22,6 +22,12 @@ void ComputeUserVar (const Data *d, Grid *grid)
   double ***celldV;
   double *dx1, *dx2, *dx3;
   double ***T, ***n, ***p, ***mach;
+  
+  #ifdef PARALLEL
+  /* This call communicates the field update across processor */
+  Boundary (d, ALL_DIR, grid);
+  MPI_Barrier (MPI_COMM_WORLD);
+  #endif
 
   /* get grid pointers */
   x1  = grid->x[IDIR];   x2 = grid->x[JDIR];   x3 = grid->x[KDIR];

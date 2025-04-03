@@ -56,7 +56,6 @@ void InitDomain (Data *d, Grid *grid)
  *********************************************************************** */
 {
   g_gamma      = 5/3.;
-  g_tracerLeftEdge = -1.;
   
   /* set pointer shortcuts */
   int i, j, k;
@@ -302,7 +301,6 @@ void Analysis (const Data *d, Grid *grid)
   }
 
   double v_cloud = sqrt(vx_cloud_all*vx_cloud_all + vy_cloud_all*vy_cloud_all + vz_cloud_all*vz_cloud_all);
-  g_dist_lab += (vx_cloud_all+g_vcloud)*g_anl_dt;
 
   /* ---- Write ascii file "analysis.dat" to disk ---- */
   if (prank == 0){
@@ -415,12 +413,13 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
  *
  *********************************************************************** */
 {
-   int   i, j, k, nv;
+  int   i, j, k, nv;
   double  *x1, *x2, *x3;
-
-  x1 = grid->x[IDIR];
-  x2 = grid->x[JDIR];
-  x3 = grid->x[KDIR];
+  double  *dx1, *dx2, *dx3;
+  double dV;
+  
+  x1  = grid->x[IDIR];   x2 = grid->x[JDIR];   x3 = grid->x[KDIR];
+  dx1 = grid->dx[IDIR]; dx2 = grid->dx[JDIR]; dx3 = grid->dx[KDIR];
   
   /* wind properties in code units */
   double rhoWind = 1.0; 
@@ -447,6 +446,70 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
           d->Vc[PRS][k][j][i] = (d->Vc[RHO][k][j][i] * temp) / ( pow(UNIT_VELOCITY,2) * (mu * CONST_mp)/CONST_kB ); 
       }
     }
+    
+    double x_offset = g_inputParam[XOFFSET];
+    /* --- variables used --- */
+    double rho, vx1;
+    static double vx1_cl = 0.;
+    double vx1_cl_now = 0., mass = 0.;
+    double tracerLeftEdge = 2.0*grid->xend_glob[IDIR];
+    
+    /* ----- Main Loop ----- */
+    DOM_LOOP(k,j,i){
+      dV  = grid->dV[k][j][i];
+      rho = d->Vc[RHO][k][j][i];
+      vx1 = d->Vc[VX1][k][j][i];  
+
+      if ((grid->xl[IDIR][i] < tracerLeftEdge) && (d->Vc[TRC][k][j][i] >= 1e-4))
+          tracerLeftEdge = grid->xl[IDIR][i];
+  
+      vx1_cl_now += vx1 * rho * d->Vc[TRC][k][j][i] * dV;
+      mass       += rho * d->Vc[TRC][k][j][i] * dV;
+    }
+  
+    #ifdef PARALLEL
+    int count = 2;
+    int tmp = 0;
+    double sendArray[count], recvArray[count];
+
+    sendArray[tmp++] = vx1_cl_now;  sendArray[tmp++] = mass; 
+    
+    // MPI_Reduce(sendArray, recvArray, count, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+    MPI_Allreduce(sendArray, recvArray, count, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    tmp = 0;
+    vx1_cl_now = recvArray[tmp++];   mass   = recvArray[tmp++];
+    #endif // end of PARALLEL
+    vx1_cl_now /= mass; /* com velocity */
+    
+    #ifdef PARALLEL
+    double dummy;
+    MPI_Allreduce(&tracerLeftEdge, &dummy, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
+    tracerLeftEdge = dummy;
+    #endif // end of PARALLEL
+
+    if (fabs((vx1_cl_now-vx1_cl)/vx1_cl_now)>1.0e-06) {
+      vx1_cl = vx1_cl_now;
+      #if BOOST==YES
+      if ( (fabs(tracerLeftEdge-grid->xbeg_glob[IDIR])>(1.5*x_offset)) && (vx1_cl>0) ) {
+        g_vcloud += vx1_cl; // frame velocity wrt lab
+        g_vlab = g_vcloud;
+        TOT_LOOP(k,j,i){
+          d->Vc[VX1][k][j][i] -= vx1_cl;
+        }
+      }
+      else
+        g_vcloud = g_vlab + vx1_cl;
+      #else
+      g_vcloud = vx1_cl;
+      #endif
+    }
+    // see main.c for g_dist_lab update
+    
+    RBox tot_box;
+    RBoxDefine (0, NX1_TOT-1, 0,  NX2_TOT-1, 0, NX3_TOT-1, CENTER, &tot_box);
+    PrimToCons3D (d->Vc, d->Uc, &tot_box);
   }
 
   if (side == X1_BEG) {  /* -- X1_BEG boundary -- */
@@ -455,7 +518,11 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
         d->Vc[RHO][k][j][i] = rhoWind;
         d->Vc[PRS][k][j][i] = pWind;
         DIM_EXPAND(
+        #if BOOST==YES
         d->Vc[VX1][k][j][i] = vWind-g_vcloud;,
+        #else
+        d->Vc[VX1][k][j][i] = vWind;,
+        #endif
         d->Vc[VX2][k][j][i] = 0.;,
         d->Vc[VX3][k][j][i] = 0.;
         )

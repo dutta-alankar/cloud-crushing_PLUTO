@@ -37,8 +37,9 @@ Z_solar = 0.0143
 # Set the simulation features
 cooling = True
 catalyst = False
-auto_compile = True
+auto_compile = False
 boost = True
+expand = False
 
 # Set the simulation parameters
 chi  = 100
@@ -53,14 +54,14 @@ ncl = 0.1 # cm^-3
 
 wind_extent = 70 # Rcl
 prp_extent  = 22 # Rcl
-RclBdcell = 8
+RclBdcell = 16
 
 tcc = np.sqrt(chi)
 dump_time = 1.0*tcc
 analysis_time = 0.1*tcc
 t_stop = 25*tcc
 
-log_steps = 100
+log_steps = 500
 
 Xp = X_solar * (1 - metallicity * Z_solar) / (X_solar + Y_solar)
 Yp = Y_solar * (1 - metallicity * Z_solar) / (X_solar + Y_solar)
@@ -127,7 +128,8 @@ def_content = f"""
 #define  INTERNAL_BOUNDARY              YES
 #define  SHOW_TIMING                    NO
 #define  SHOW_TIME_STEPS                YES
-#define  BOOST                          {'YES' if boost else 'NO'} 
+#define  BOOST                          {'YES' if boost else 'NO'}
+#define  EXPANSION                      {'YES' if expand else 'NO'}
 
 /* -- user-defined parameters (labels) -- */
 

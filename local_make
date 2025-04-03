@@ -1,21 +1,25 @@
-# INCLUDE_DIRS += -I/modules/paraview/catalyst/include/catalyst-2.0
-# LDFLAGS      += -L/modules/paraview/catalyst/lib64 -lcatalyst
-# CFLAGS       += -DUSE_CATALYST # -DCATALYST_DEBUG
-# CFLAGS       += -DPARAVIEW_IMPL_DIR=\"/modules/paraview/lib/catalyst\" -DVTK_SILENCE_GET_VOID_POINTER_WARNINGS
+ifeq ($(strip $(PARALLEL)), TRUE)
+ LDFLAGS      += -L/mpcdf/soft/SLE_15/packages/skylake/hdf5/gcc_10-10.3.0-openmpi_4-4.0.7/1.12.0/lib -lhdf5 -lz
+ INCLUDE_DIRS += -I/mpcdf/soft/SLE_15/packages/skylake/hdf5/gcc_10-10.3.0-openmpi_4-4.0.7/1.12.0/include
+endif
 
-# If you want to debug the code, especially when seg faults occur
-# You can also choose the debug.defs from the configuration
-# CFLAGS        += -g -O0 -Wall -Wno-unused-but-set-variable -Wno-unused-variable
+ifeq ($(strip $(PARALLEL)), FALSE)
+ LDFLAGS      += -L/mpcdf/soft/SLE_15/packages/skylake/hdf5/gcc_10-10.3.0/1.12.0/lib -lhdf5 -lz
+ INCLUDE_DIRS += -I/mpcdf/soft/SLE_15/packages/skylake/hdf5/gcc_10-10.3.0/1.12.0/include
+endif
 
- HDF5_LIB      = /home/alankar/Documents/demo-setup/comp_libs/hdf5/parallel
- ZLIB          = /home/alankar/Documents/demo-setup/comp_libs/zlib
- SZLIB         = /home/alankar/Documents/demo-setup/comp_libs/szip
- # MPI_LIB       = /home/alankar/Documents/demo-setup/comp_libs/mpich
- INCLUDE_DIRS += -I$(MPI_LIB)/include
- INCLUDE_DIRS += -I$(HDF5_LIB)/include/
- LDFLAGS      += $(HDF5_LIB)/lib/libhdf5.a $(ZLIB)/lib/libz.a $(SZLIB)/lib/libsz.a
- # LDFLAGS      += $(MPI_LIB)/lib/libmpi.a
- # LDFLAGS       += -lhdf5 -lz
- CFLAGS        += -DUSE_HDF5
- OBJ           +=  hdf5_io.o
- OBJ           +=  apply_boost.o
+ CFLAGS       += -O3 -DUSE_HDF5 # -DH5_USE_16_API
+ OBJ          += hdf5_io.o
+
+ OBJ          += apply_expansion.o
+ HEADERS      += local_gvars.h
+ HEADERS      += local_pluto.h
+ 
+ # CFLAGS      += -DUSE_PNG
+ # LDFLAGS     += -L$(PNG_LIB)/lib -lpng
+ # LDFLAGS     += -lgsl -lgslcblas
+
+ # INCLUDE_DIRS += -I/u/adutt/comp_libs/catalyst/include/catalyst-2.0
+ # LDFLAGS      += -L/u/adutt/comp_libs/catalyst/lib64 -lcatalyst
+ # CFLAGS       += -DUSE_CATALYST # -DCATALYST_VERBOSE
+ # CFLAGS       += -DPARAVIEW_IMPL_DIR="/mpcdf/soft/SLE_15/packages/x86_64/paraview/5.10.1/lib/catalyst/"

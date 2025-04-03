@@ -252,6 +252,8 @@ int main (int argc, char *argv[])
     g_maxIMEXIter = nv;
     #endif
     #endif
+    
+    g_dist_lab += (g_vcloud*g_dt);
 
     if (g_stepNumber%runtime.log_freq == 0) {
       OutputLogPost(&data, &Dts, &runtime, grd);
@@ -288,8 +290,8 @@ int main (int argc, char *argv[])
     if (g_stepNumber%2 == 1) g_dt = NextTimeStep(&Dts, &runtime, grd);
     #endif
     
-    #if BOOST != NO
-    ApplyBoost (&data, g_dt, &Dts, grd);
+    #if EXPANSION != NO
+    ApplyExpansion (&data, g_dt, &Dts, grd);
     #endif
 
     g_stepNumber++;
