@@ -40,6 +40,25 @@ void ApplyExpansion (const Data *d, double dt, timeStep *Dts, Grid *grid)
     d->Vc[TRC][k][j][i] *= pow(scale, -rho_pow);
   }
   
+  /* Expand the grid */
+  KTOT_LOOP(k){
+    grid->xr_glob[KDIR][k] += (0.5*scale*grid->dx_glob[KDIR][k]);
+    grid->xl_glob[KDIR][k] -= (0.5*scale*grid->dx_glob[KDIR][k]);
+    grid->x_glob[KDIR][k] = 0.5*(grid->xl_glob[KDIR][k]+grid->xr_glob[KDIR][k]);
+    grid->dx_glob[KDIR][k] *= scale;
+  }
+  JTOT_LOOP(j){
+    grid->xr_glob[JDIR][j] += (0.5*scale*grid->dx_glob[KDIR][j]);
+    grid->xl_glob[JDIR][j] -= (0.5*scale*grid->dx_glob[KDIR][j]);
+    grid->x_glob[JDIR][j] = 0.5*(grid->xl_glob[KDIR][j]+grid->xr_glob[KDIR][j]);
+    grid->dx_glob[JDIR][j] *= scale;
+  }
+  grid->xbeg_glob[KDIR] = g_domBeg[KDIR] = grid->xl_glob[KDIR][grid->gbeg[KDIR]];
+  grid->xbeg_glob[JDIR] = g_domBeg[JDIR] = grid->xl_glob[JDIR][grid->gbeg[JDIR]];
+  grid->xend_glob[KDIR] = g_domEnd[KDIR] = grid->xr_glob[KDIR][grid->gend[KDIR]];
+  grid->xend_glob[JDIR] = g_domEnd[JDIR] = grid->xr_glob[JDIR][grid->gend[JDIR]];
+  SetGeometry(grid);
+  
   #ifdef PARALLEL
   /* This call communicates the field update across processor */
   Boundary (d, ALL_DIR, grid);
