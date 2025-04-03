@@ -458,12 +458,6 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
   #endif
 
   if (side == 0) {    /* -- check solution inside domain -- */
-    TOT_LOOP(k,j,i) {
-      double temp = (d->Vc[PRS][k][j][i] / d->Vc[RHO][k][j][i]) * pow(UNIT_VELOCITY,2) * (mu * CONST_mp)/CONST_kB; // Kelvin
-      if (temp < Tcl) {
-          d->Vc[PRS][k][j][i] = (d->Vc[RHO][k][j][i] * temp) / ( pow(UNIT_VELOCITY,2) * (mu * CONST_mp)/CONST_kB ); 
-      }
-    }
     
     double x_offset = g_inputParam[XOFFSET];
     /* --- variables used --- */
@@ -524,6 +518,13 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
       #endif
     }
     // see main.c for g_dist_lab update
+    
+    TOT_LOOP(k,j,i) {
+      double temp = (d->Vc[PRS][k][j][i] / d->Vc[RHO][k][j][i]) * pow(UNIT_VELOCITY,2) * (mu * CONST_mp)/CONST_kB; // Kelvin
+      if (temp < Tcl) {
+          d->Vc[PRS][k][j][i] = (d->Vc[RHO][k][j][i] * Tcl) / ( pow(UNIT_VELOCITY,2) * (mu * CONST_mp)/CONST_kB ); 
+      }
+    }
     
     RBox tot_box;
     RBoxDefine (0, NX1_TOT-1, 0,  NX2_TOT-1, 0, NX3_TOT-1, CENTER, &tot_box);
