@@ -133,7 +133,14 @@ void Analysis (const Data *d, Grid *grid)
   double *x1 = grid->x[IDIR];
   double *x2 = grid->x[JDIR];
   double *x3 = grid->x[KDIR];
-
+  
+  #if EXPANSION==YES 
+  double scale = g_dist_lab/g_inputParam[XOFFSET];
+  double rho_pow = -2.0;
+  double prs_pow = -2*g_gamma;
+  double vpr_pow = -1.0;
+  #endif
+  
   if (first==0) {
     first = 1;
 
@@ -154,6 +161,11 @@ void Analysis (const Data *d, Grid *grid)
     factor_rho    = sqrt(chi)/3;
     factor_temp   = sqrt(eta)/3;
     rho_cl   = chi;
+    #if EXPANSION==YES 
+    factor_rho    *= pow(scale, rho_pow);
+    factor_temp   *= pow(scale, prs_pow-rho_pow);
+    rho_cl *= pow(scale, rho_pow);
+    #endif
   }
   if (g_stepNumber==0){
     double dV;
@@ -222,6 +234,9 @@ void Analysis (const Data *d, Grid *grid)
   int cold_indx;
   int cloud_indx;
   rho_wind = 1.0;
+  #if EXPANSION==YES 
+  rho_wind *= pow(scale, rho_pow);
+  #endif
   DOM_LOOP(k,j,i){
     dV = grid->dV[k][j][i]; // Cell volume
     trc         += d->Vc[RHO][k][j][i]*d->Vc[TRC][k][j][i]*dV;
@@ -233,6 +248,9 @@ void Analysis (const Data *d, Grid *grid)
       mass_dense += d->Vc[RHO][k][j][i]*dV;
 
     T_wind = MIN(MAX(eta*Tcl, Tcutoff), Tmax);
+    #if EXPANSION==YES 
+    T_wind   *= pow(scale, prs_pow-rho_pow);
+    #endif
 
     T_gas = (d->Vc[PRS][k][j][i]/d->Vc[RHO][k][j][i])*pow(UNIT_VELOCITY,2)*(CONST_mp*mu)/CONST_kB;
     for (cloud_indx=0; cloud_indx<(int)(sizeof(rho_cut) / sizeof(rho_cut[0])); cloud_indx++){
