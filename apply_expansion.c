@@ -37,7 +37,7 @@ void ApplyExpansion (const Data *d, double dt, timeStep *Dts, Grid *grid)
     d->Vc[PRS][k][j][i] *= pow(scale,  prs_pow);
     d->Vc[VX2][k][j][i] *= pow(scale,  vpr_pow);
     d->Vc[VX3][k][j][i] *= pow(scale,  vpr_pow);
-    d->Vc[TRC][k][j][i] *= pow(scale, -rho_pow);
+    // d->Vc[TRC][k][j][i] *= pow(scale, -rho_pow);
   }
   
   /* Expand the grid */
