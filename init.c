@@ -444,7 +444,7 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
     TOT_LOOP(k,j,i) {
       double temp = (d->Vc[PRS][k][j][i] / d->Vc[RHO][k][j][i]) * pow(UNIT_VELOCITY,2) * (mu * CONST_mp)/CONST_kB; // Kelvin
       if (temp < Tcl) {
-          d->Vc[PRS][k][j][i] = (d->Vc[RHO][k][j][i] * temp) / ( pow(UNIT_VELOCITY,2) * (mu * CONST_mp)/CONST_kB ); 
+          d->Vc[PRS][k][j][i] = (d->Vc[RHO][k][j][i] * Tcl) / ( pow(UNIT_VELOCITY,2) * (mu * CONST_mp)/CONST_kB ); 
       }
     }
   }
