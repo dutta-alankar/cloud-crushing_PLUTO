@@ -458,7 +458,6 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
   #endif
 
   if (side == 0) {    /* -- check solution inside domain -- */
-    
     double x_offset = g_inputParam[XOFFSET];
     /* --- variables used --- */
     double rho, vx1;
@@ -501,7 +500,7 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
     tracerLeftEdge = dummy;
     #endif // end of PARALLEL
 
-    if (fabs((vx1_cl_now-vx1_cl)/vx1_cl_now)>1.0e-06) {
+    if (fabs((vx1_cl_now-vx1_cl)/vx1_cl_now)>1.0e-06) { // boost/update if the cloud velocity change
       vx1_cl = vx1_cl_now;
       #if BOOST==YES
       if ( (fabs(tracerLeftEdge-grid->xbeg_glob[IDIR])>(1.5*x_offset)) && (vx1_cl>0) ) {
@@ -517,7 +516,6 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
       g_vcloud = vx1_cl;
       #endif
     }
-    // see main.c for g_dist_lab update
     
     TOT_LOOP(k,j,i) {
       double temp = (d->Vc[PRS][k][j][i] / d->Vc[RHO][k][j][i]) * pow(UNIT_VELOCITY,2) * (mu * CONST_mp)/CONST_kB; // Kelvin
@@ -536,6 +534,14 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
       BOX_LOOP(box,k,j,i) {
         d->Vc[RHO][k][j][i] = rhoWind;
         d->Vc[PRS][k][j][i] = pWind;
+        #if EXPANSION==YES 
+        double scale = g_dist_lab/g_inputParam[XOFFSET];
+        double rho_pow = -2.0;
+        double prs_pow = -2*g_gamma;
+        double vpr_pow = -1.0;
+        d->Vc[RHO][k][j][i] *= pow(scale, rho_pow);
+        d->Vc[PRS][k][j][i] *= pow(scale, prs_pow);
+        #endif
         DIM_EXPAND(
         #if BOOST==YES
         d->Vc[VX1][k][j][i] = vWind-g_vcloud;,
@@ -544,6 +550,7 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
         #endif
         d->Vc[VX2][k][j][i] = 0.;,
         d->Vc[VX3][k][j][i] = 0.;
+        d->Vc[TRC][k][j][i] = 0.;
         )
       }
     }else if (box->vpos == X1FACE){
@@ -558,11 +565,13 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
   if (side == X1_END){  /* -- X1_END boundary -- */
     if (box->vpos == CENTER) {
       BOX_LOOP(box,k,j,i){ 
+        /*
         d->Vc[RHO][k][j][i] = rhoWind;
         d->Vc[PRS][k][j][i] = pWind;
         d->Vc[VX1][k][j][i] = vWind;
         d->Vc[VX2][k][j][i] = d->Vc[VX2][k][j][i];
         d->Vc[VX3][k][j][i] = d->Vc[VX3][k][j][i];
+        */
       }
     }else if (box->vpos == X1FACE){
       BOX_LOOP(box,k,j,i){  }
