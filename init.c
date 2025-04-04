@@ -464,6 +464,7 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
     static double vx1_cl = 0.;
     double vx1_cl_now = 0., mass = 0.;
     double tracerLeftEdge = 2.0*grid->xend_glob[IDIR];
+    static int step_now = -1;
     
     /* ----- Main Loop ----- */
     DOM_LOOP(k,j,i){
@@ -500,7 +501,9 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
     tracerLeftEdge = dummy;
     #endif // end of PARALLEL
 
-    if (fabs((vx1_cl_now-vx1_cl)/vx1_cl_now)>1.0e-06) { // boost/update if the cloud velocity change
+    if ((fabs((vx1_cl_now-vx1_cl)/vx1_cl_now)>1.0e-06) && (step_now!=g_stepNumber)) { 
+      // boost/update if the cloud velocity change and only once every timestep
+      step_now = g_stepNumber;
       vx1_cl = vx1_cl_now;
       #if BOOST==YES
       if ( (fabs(tracerLeftEdge-grid->xbeg_glob[IDIR])>(1.5*x_offset)) && (vx1_cl>0) ) {
@@ -514,6 +517,7 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
         g_vcloud = g_vlab + vx1_cl;
       #else
       g_vcloud = vx1_cl;
+      g_vlab = 0.;
       #endif
     }
     
@@ -550,8 +554,8 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
         #endif
         d->Vc[VX2][k][j][i] = 0.;,
         d->Vc[VX3][k][j][i] = 0.;
-        d->Vc[TRC][k][j][i] = 0.;
         )
+        d->Vc[TRC][k][j][i] = 0.;
       }
     }else if (box->vpos == X1FACE){
       BOX_LOOP(box,k,j,i){  }

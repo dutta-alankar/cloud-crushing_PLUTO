@@ -41,31 +41,34 @@ void ApplyExpansion (const Data *d, double dt, timeStep *Dts, Grid *grid)
   }
   
   /* Expand the grid */
-  KTOT_LOOP(k){
-    grid->xr_glob[KDIR][k] += (0.5*scale*grid->dx_glob[KDIR][k]);
-    grid->xl_glob[KDIR][k] -= (0.5*scale*grid->dx_glob[KDIR][k]);
-    grid->x_glob[KDIR][k] = 0.5*(grid->xl_glob[KDIR][k]+grid->xr_glob[KDIR][k]);
+  for(k=0; k<grid->np_tot_glob[KDIR]; k++){
+    grid->xr_glob[KDIR][k] *= scale;
+    grid->xl_glob[KDIR][k] *= scale;
+    grid->x_glob[KDIR][k]   = (0.5*(grid->xl_glob[KDIR][k]+grid->xr_glob[KDIR][k]));
     grid->dx_glob[KDIR][k] *= scale;
   }
-  JTOT_LOOP(j){
-    grid->xr_glob[JDIR][j] += (0.5*scale*grid->dx_glob[KDIR][j]);
-    grid->xl_glob[JDIR][j] -= (0.5*scale*grid->dx_glob[KDIR][j]);
-    grid->x_glob[JDIR][j] = 0.5*(grid->xl_glob[KDIR][j]+grid->xr_glob[KDIR][j]);
+  for(j=0; j<grid->np_tot_glob[JDIR]; j++){
+    grid->xr_glob[JDIR][j] *= scale;
+    grid->xl_glob[JDIR][j] *= scale;
+    grid->x_glob[JDIR][j]   = (0.5*(grid->xl_glob[JDIR][j]+grid->xr_glob[JDIR][j]));
     grid->dx_glob[JDIR][j] *= scale;
   }
+  /* Re-assign the global beg and end of the domain */
   grid->xbeg_glob[KDIR] = g_domBeg[KDIR] = grid->xl_glob[KDIR][grid->gbeg[KDIR]];
   grid->xbeg_glob[JDIR] = g_domBeg[JDIR] = grid->xl_glob[JDIR][grid->gbeg[JDIR]];
   grid->xend_glob[KDIR] = g_domEnd[KDIR] = grid->xr_glob[KDIR][grid->gend[KDIR]];
   grid->xend_glob[JDIR] = g_domEnd[JDIR] = grid->xr_glob[JDIR][grid->gend[JDIR]];
+  /* Re-calculate areas and volume for every cell */
   SetGeometry(grid);
+
+  RBox tot_box;
+  RBoxDefine (0, NX1_TOT-1, 0,  NX2_TOT-1, 0, NX3_TOT-1, CENTER, &tot_box);
+  PrimToCons3D (d->Vc, d->Uc, &tot_box);
   
   #ifdef PARALLEL
-  /* This call communicates the field update across processor */
+  /* This call communicates the field update across processors */
   Boundary (d, ALL_DIR, grid);
   MPI_Barrier (MPI_COMM_WORLD);
   #endif
-  RBox dom_box;
-  RBoxDefine (0, NX1_TOT-1, 0,  NX2_TOT-1, 0, NX3_TOT-1, CENTER, &dom_box);
-  PrimToCons3D (d->Vc, d->Uc, &dom_box);
   return ;
 }
