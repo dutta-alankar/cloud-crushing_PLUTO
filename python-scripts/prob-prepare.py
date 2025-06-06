@@ -37,7 +37,7 @@ Z_solar = 0.0143
 # Set the simulation features
 cooling = True
 catalyst = False
-auto_compile = True
+auto_compile = False
 boost = True
 
 # Set the simulation parameters
@@ -51,9 +51,9 @@ metallicity = 1.0 # ZSun
 gamma = 5/3.
 ncl = 0.1 # cm^-3
 
-wind_extent = 70 # Rcl
+wind_extent = 100 # Rcl
 prp_extent  = 22 # Rcl
-RclBdcell = 8
+RclBdcell = 16
 
 tcc = np.sqrt(chi)
 dump_time = 1.0*tcc
@@ -70,6 +70,9 @@ cooltable_name = "cooltable-SD93.dat"
 cooltable = np.loadtxt(f"../cooltables/{cooltable_name}")
 LAMBDA = interp1d(cooltable[:,0], cooltable[:,1], fill_value="extrapolate")
 mu = 1./(2*Xp+0.75*Yp+0.5625*Zp)
+
+mu_wind = 0.595
+mu_cl = 1.234
 nwind = ncl/chi
 Twind = eta*Tcl
 vwind = mach*np.sqrt(gamma*kB*Twind/(mu*mp))
@@ -81,7 +84,7 @@ nHmix = nmix*mu*(mp/mH)*Xp
 tcoolmix = (1./(gamma-1))*Pmix/(nHmix*nHmix*LAMBDA(Tmix))
 Rcl = vwind*tcoolmix/(np.sqrt(chi)*tcoolmBtcc)
 
-UNIT_DENSITY = nwind*mu*mp
+UNIT_DENSITY = nwind*mu_wind*mp
 UNIT_LENGTH = Rcl
 UNIT_VELOCITY = vwind
 
@@ -109,7 +112,7 @@ def_content = f"""
 #define  DIMENSIONS                     3
 #define  GEOMETRY                       CARTESIAN
 #define  BODY_FORCE                     NO
-#define  COOLING                        {'NO' if not(cooling) else 'TABULATED'}
+#define  COOLING                        {'NO' if not(cooling) else 'GRACKLE'}
 #define  RECONSTRUCTION                 LINEAR
 #define  TIME_STEPPING                  RK3
 #define  NTRACER                        1
@@ -137,7 +140,7 @@ def_content = f"""
 #define  TCOOL_TCC                      3
 #define  TCL                            4
 #define  XOFFSET                        5
-#define  ZMET                           6
+#define  METAL                          6
 
 /* [Beg] user-defined constants (do not change this line) */
 
@@ -220,6 +223,17 @@ particles_flt       -1.0   -1
 particles_vtk       -1.0   -1
 particles_tab       -1.0   -1
 
+[Grackle]
+
+primordial_chemistry     1
+dust_chemistry           0
+metal_cooling            1
+UVbackground             1
+grackle_data_file        ./data/CloudyData_UVB=HM2012.h5
+use_temperature_floor    1
+temperature_floor        {Tcl:.2e}
+grackle_verbose          0
+
 [Parameters]
 
 CHI                {chi:.1f}
@@ -228,7 +242,7 @@ MACH               {mach:.2f}
 TCOOL_TCC          {tcoolmBtcc:.2e}
 TCL                {Tcl:.2e}
 XOFFSET            {cloud_pos:.1f}
-ZMET               {metallicity:.2f}
+METAL              {metallicity:.2f}
 """
 
 with open("../pluto.ini", "w") as ascii:
