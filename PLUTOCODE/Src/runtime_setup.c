@@ -418,6 +418,26 @@ printf ("%f  %d %s\n",runtime->patch_left_node[idim][ip],runtime->patch_npoint[i
 
 #endif
 
+/* ------------------------------------------------------------
+   [Grackle] Section 
+   ------------------------------------------------------------ */
+
+#if COOLING==GRACKLE
+  g_grackle_params.grackle_primordial_chemistry = atoi(ParamFileGet("primordial_chemistry",1));
+  g_grackle_params.grackle_dust_chemistry = atoi(ParamFileGet("dust_chemistry",1));
+  g_grackle_params.grackle_metal_cooling = atoi(ParamFileGet("metal_cooling",1));
+  g_grackle_params.grackle_UVbackground = atoi(ParamFileGet("UVbackground",1));
+  strcpy(g_grackle_params.grackle_data_file, ParamFileGet("grackle_data_file",1));
+  if (ParamExist("use_temperature_floor")) {
+    g_grackle_params.grackle_use_temperature_floor = atoi(ParamFileGet("use_temperature_floor",1));
+    if (ParamExist("temperature_floor")) 
+        g_grackle_params.grackle_temperature_floor_scalar = atof(ParamFileGet("temperature_floor",1));
+    else
+        g_grackle_params.grackle_temperature_floor_scalar = -1.0;
+  }
+  g_grackle_params.grackle_verbose = atoi(ParamFileGet("grackle_verbose",1));
+#endif
+
  /* -- set default for remaining output type -- */
 
   while (ipos < MAX_OUTPUT_TYPES){

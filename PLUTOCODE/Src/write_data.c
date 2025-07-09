@@ -58,7 +58,7 @@ void WriteData (const Data *d, Output *output, Grid *grid)
 
   output->nfile++;
 
-  print ("> Writing file #%d (%s) to disk...\n", output->nfile, output->ext);
+  printLog ("> Writing file #%d (%s) to disk...\n", output->nfile, output->ext);
 
 #ifdef PARALLEL
   MPI_Barrier (MPI_COMM_WORLD);

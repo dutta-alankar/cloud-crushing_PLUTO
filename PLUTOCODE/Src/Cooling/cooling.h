@@ -25,12 +25,14 @@
     Function prototypes
    ******************************************************** */
 
-double CompEquil  (double, double, double *);
 void   CoolingSource (const Data *, double, timeStep *, Grid *);
+#if COOLING != GRACKLE
 double GetMaxRate (double *, double *, double);
+double CompEquil  (double, double, double *);
 void   Jacobian (double *, double *, double **);
 void   NormalizeIons (double *);
 void   Numerical_Jacobian (double *, double **);
+#endif
 #if COOLING == POWER_LAW
  void  PowerLawCooling (Data_Arr, double, timeStep *, Grid *);
 #elif COOLING == TOWNSEND
@@ -38,17 +40,42 @@ void   Numerical_Jacobian (double *, double **);
  double Y_interp(double );
  double invY_interp(double );
 #endif 
+#if COOLING != GRACKLE
 void   Radiat (double *, double *);
-
 double SolveODE_CK45  (double *, double *, double *, double, double, intList *);
 double SolveODE_RKF23 (double *, double *, double *, double, intList *);
 double SolveODE_RKF12 (double *, double *, double *, double, intList *);
 double SolveODE_RK4   (double *, double *, double *, double, intList *);
 double SolveODE_ROS34 (double *, double *, double *, double, double);
+#endif
 
 /* ********************************************************
     Cooling module specific definitions
    ******************************************************** */
+
+#if COOLING == GRACKLE
+#include "grackle.h"
+void grackle_cooling_version_info (char *);
+void finalize_grackle ();
+void call_grackle_equil (const Data *, Grid *);
+void normalize_ions_grackle (const Data *, const chemistry_data *, int, int, int);
+void call_grackle (const Data *, double, timeStep *, Grid *, int, int, int, int);
+void call_grackle_equil_by_cell (const Data *, Grid *, int, int, int);
+  #define NIONS    13
+  #define X_HI       (NFLX)
+  #define X_HII      (NFLX + 1)
+  #define Y_HeI      (NFLX + 2)
+  #define Y_HeII     (NFLX + 3)
+  #define Y_HeIII    (NFLX + 4)
+  #define X_HM       (NFLX + 5)
+  #define X_H2I      (NFLX + 6)
+  #define X_H2II     (NFLX + 7)
+  #define X_DI       (NFLX + 8)
+  #define X_DII      (NFLX + 9)
+  #define X_HDI      (NFLX + 10)
+  #define elec       (NFLX + 11)
+  #define Z_MET      (NFLX + 12)
+#endif
 
 #if COOLING == H2_COOL
   void   H2RateTables(double, double *);

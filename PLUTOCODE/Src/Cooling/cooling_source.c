@@ -34,7 +34,30 @@
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
-#if COOLING != TOWNSEND
+#include "cooling.h"
+
+#if COOLING == GRACKLE
+/* ********************************************************
+    Global coordinates available in the Radiat() function
+   ******************************************************** */
+
+double gCooling_x1, gCooling_x2, gCooling_x3;
+
+/* ********************************************************************* */
+void CoolingSource (const Data *d, double dt, timeStep *Dts, Grid *grid)
+/*!
+ * Integrate cooling and reaction source terms.
+ *
+ * \param [in,out]  d     pointer to Data structure
+ * \param [in]     dt     the time step to be taken
+ * \param [out]    Dts    pointer to the Time_Step structure
+ * \param [in]     grid   pointer to an array of Grid structures
+ *
+ *********************************************************************** */
+{
+    call_grackle(d, dt, Dts, grid, 0, 0, 0, 0);
+}
+#elif (COOLING != TOWNSEND) && (COOLING ! =GRACKLE)
 /* ********************************************************
     Global coordinates available in the Radiat() function
    ******************************************************** */

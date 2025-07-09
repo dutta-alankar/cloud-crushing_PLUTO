@@ -168,6 +168,42 @@ void SetOutput (Data *d, Runtime *runtime)
      -------------------------------------------- */
 
     for (nv = output->nvar; nv--; ) output->dump_var[nv] = YES;
+#if COOLING==GRACKLE
+    output->dump_var[X_HI] = NO;
+    output->dump_var[X_HII] = NO;
+    output->dump_var[Y_HeI] = NO;
+    output->dump_var[Y_HeII] = NO;
+    output->dump_var[Y_HeIII] = NO;
+    output->dump_var[X_HM] = NO;
+    output->dump_var[X_H2I] = NO;
+    output->dump_var[X_H2II] = NO;
+    output->dump_var[X_DI] = NO;
+    output->dump_var[X_DII] = NO;
+    output->dump_var[X_HDI] = NO;
+    output->dump_var[elec] = NO;
+    output->dump_var[Z_MET] = NO;
+    if (g_grackle_params.grackle_primordial_chemistry>=1) {
+      output->dump_var[X_HI]    = YES;
+      output->dump_var[X_HII]   = YES;
+      output->dump_var[Y_HeI]   = YES;
+      output->dump_var[Y_HeII]  = YES;
+      output->dump_var[Y_HeIII] = YES;
+      output->dump_var[elec]    = YES;
+    }
+    if (g_grackle_params.grackle_primordial_chemistry>=2) {
+      output->dump_var[X_HM]   = YES;
+      output->dump_var[X_H2I]  = YES;
+      output->dump_var[X_H2II] = YES;
+    }
+    if (g_grackle_params.grackle_primordial_chemistry>=3) {
+      output->dump_var[X_DI]   = YES;
+      output->dump_var[X_DII]  = YES;
+      output->dump_var[X_HDI]  = YES;
+    }
+    if (g_grackle_params.grackle_metal_cooling==1)
+      output->dump_var[Z_MET] = YES;
+#endif
+
     #if ENTROPY_SWITCH
      output->dump_var[ENTR] = NO;
     #endif

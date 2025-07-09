@@ -22,7 +22,7 @@
 #if COOLING == MINEq
  #include "cooling_defs.h"
 #endif
-
+#if COOLING != GRACKLE
 /* ********************************************************************* */
 double SolveODE_CK45 (double *v0, double *k1, double *v5th, 
                       double dt, double tol, intList *vars)
@@ -672,4 +672,5 @@ double vbeg[NVAR_COOLING];
 #undef C4X 
 #undef A2X 
 #undef A3X 
+#endif
 #endif

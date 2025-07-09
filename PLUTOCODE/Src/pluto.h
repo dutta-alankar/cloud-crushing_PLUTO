@@ -110,6 +110,7 @@
 #define H2_COOL      7
 #define KROME        8
 #define TOWNSEND     9
+#define GRACKLE      10
 
 /*----- Particle Labels ----- */
 
@@ -479,6 +480,11 @@
  #define HAVE_ENERGY       NO
 #endif
 
+#if COOLING==GRACKLE
+ #define TEMP (0)
+ #define MU   (1)
+#endif
+
 /*! Define the conversion constant between dimensionless 
     temperature prs/rho and physical temperature in Kelvin,
     T = (prs/rho)*KELVIN*mu                                   */
@@ -708,6 +714,7 @@ typedef double ****Data_Arr;
 #else
   #define NDUST_FLUID   0
 #endif
+ 
 #define NVAR (NFLX + NSCL + NDUST_FLUID)
 
 #define NVAR_LOOP(n)     for ((n) = NVAR;   (n)--;       )
@@ -866,6 +873,10 @@ extern double g_inputParam[32];
  #if GEOMETRY == CARTESIAN
   extern double g_stretch_fact;
  #endif
+#endif
+
+#if COOLING==GRACKLE
+  extern grackle_params g_grackle_params;
 #endif
 
 #if DEBUG == TRUE

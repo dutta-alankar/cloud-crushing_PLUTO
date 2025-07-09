@@ -110,6 +110,22 @@ void SetDefaultVarNames(Output *output)
 
     NIONS_LOOP(nv) strcpy(output->var_name[nv], ion_name[nv-NFLX]);
   }
+#elif COOLING == GRACKLE
+  {
+       strcpy(output->var_name[X_HI], "HI");
+       strcpy(output->var_name[X_HII], "HII");
+       strcpy(output->var_name[Y_HeI], "HeI");
+       strcpy(output->var_name[Y_HeII], "HeII");
+       strcpy(output->var_name[Y_HeIII], "HeIII");
+       strcpy(output->var_name[X_HM], "H-");
+       strcpy(output->var_name[X_H2I], "H2I");
+       strcpy(output->var_name[X_H2II], "H2II");
+       strcpy(output->var_name[X_DI], "DI");
+       strcpy(output->var_name[X_DII], "DII");
+       strcpy(output->var_name[X_HDI], "HDI");
+       strcpy(output->var_name[elec], "rho_e-");
+       strcpy(output->var_name[Z_MET], "met");
+  }
 #elif COOLING == SNEq
 
    strcpy(output->var_name[X_HI], "X_HI");

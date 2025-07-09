@@ -423,7 +423,10 @@ void Initialize(Data *data, Runtime *runtime, Grid *grid, cmdLine *cmd_line)
 
   print ("\n> Memory allocation\n");
   data->Vc = ARRAY_4D(NVAR, NX3_TOT, NX2_TOT, NX1_TOT, double);
-  data->Uc = ARRAY_4D(NX3_TOT, NX2_TOT, NX1_TOT, NVAR, double); 
+  data->Uc = ARRAY_4D(NX3_TOT, NX2_TOT, NX1_TOT, NVAR, double);
+  #if COOLING == GRACKLE
+  data->Vgrac = ARRAY_4D(2, NX3_TOT, NX2_TOT, NX1_TOT, double);
+  #endif
 
 #ifdef STAGGERED_MHD
   data->Vs = ARRAY_1D(6, double ***);

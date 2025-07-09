@@ -33,7 +33,7 @@
 #include "globals.h"
 
 #ifndef SHOW_TIME_STEPS
-  #define SHOW_TIME_STEPS  NO  /* Show time steps due to different processes */
+  #define SHOW_TIME_STEPS  YES  /* Show time steps due to different processes */
 #endif
 #ifndef SHOW_TIMING
   #define SHOW_TIMING      NO  /* Compute CPU timing between steps */
@@ -88,6 +88,9 @@ int main (int argc, char *argv[])
   if (prank == 0) RuntimeSetup (&runtime, &cmd_line, input_file);
 #ifdef PARALLEL
   MPI_Bcast (&runtime,  sizeof (Runtime) , MPI_BYTE, 0, MPI_COMM_WORLD);
+#if COOLING==GRACKLE
+  MPI_Bcast (&g_grackle_params,  sizeof (grackle_params) , MPI_BYTE, 0, MPI_COMM_WORLD);
+#endif
 #endif
   RuntimeSet (&runtime);
 
@@ -155,8 +158,8 @@ int main (int argc, char *argv[])
   }
 
   if (cmd_line.maxsteps == 0) last_step = 1;
-  print ("> Starting computation... \n\n");  
 
+  printLog ("> Starting computation... \n\n"); 
 /* =====================================================================
    1.  M A I N      L O O P      S T A R T S      H E R E
    ===================================================================== */
@@ -206,7 +209,10 @@ int main (int argc, char *argv[])
 
     if (cmd_line.jet != -1) SetJetDomain (&data, cmd_line.jet, runtime.log_freq, grd); 
     err = Integrate (&data, &Dts, grd);
-    if (cmd_line.jet != -1) UnsetJetDomain (&data, cmd_line.jet, grd); 
+    if (cmd_line.jet != -1) UnsetJetDomain (&data, cmd_line.jet, grd);
+    #if INTERNAL_BOUNDARY == YES
+    UserDefBoundary (&data, NULL, 0, grd);
+    #endif
 
   /* ----------------------------------------------------
      1e. Integration didn't go through. Step must
@@ -253,10 +259,10 @@ int main (int argc, char *argv[])
     clock_end = clock();
     if (g_stepNumber%runtime.log_freq == 0) {
       scrh = (double)(clock_end - clock_beg)/CLOCKS_PER_SEC;
-      print ("%s [clock (total)         = %f (s)]\n",IndentString(), scrh);
-      print ("%s [clock (AdvanceStep()) = %f (s)]\n",IndentString(),Dts.clock_hyp);
+      printLog ("%s [clock (total)         = %f (s)]\n",IndentString(), scrh);
+      printLog ("%s [clock (AdvanceStep()) = %f (s)]\n",IndentString(),Dts.clock_hyp);
       #if PARTICLES
-      print ("%s [clock (particles)     = %f (s)]\n",IndentString(),Dts.clock_particles);
+      printLog ("%s [clock (particles)     = %f (s)]\n",IndentString(),Dts.clock_particles);
       #endif
     }
     #endif
@@ -267,11 +273,14 @@ int main (int argc, char *argv[])
          splitting are used.
      ------------------------------------------------------ */
 
+    /*
     #if (COOLING == NO) 
     g_dt = NextTimeStep(&Dts, &runtime, grd);
     #else
     if (g_stepNumber%2 == 1) g_dt = NextTimeStep(&Dts, &runtime, grd);
     #endif
+    */
+    g_dt = NextTimeStep(&Dts, &runtime, grd);
 
     g_stepNumber++;
     first_step = 0;
@@ -289,27 +298,31 @@ int main (int argc, char *argv[])
 
   #ifdef PARALLEL
   MPI_Barrier (MPI_COMM_WORLD);
-  print ("\n> Total allocated memory  %6.2f Mb (proc #%d)\n",
+  printLog ("\n> Total allocated memory  %6.2f Mb (proc #%d)\n",
             (float)g_usedMemory/1.e6,prank);
   MPI_Barrier (MPI_COMM_WORLD);
   #else
-  print  ("\n> Total allocated memory  %6.2f Mb\n",(float)g_usedMemory/1.e6);
+  printLog  ("\n> Total allocated memory  %6.2f Mb\n",(float)g_usedMemory/1.e6);
   #endif
 
   time(&tend);
   g_dt = difftime(tend, tbeg);
-  print ("> Elapsed time             %s\n", TotalExecutionTime(g_dt));
+  printLog ("> Elapsed time             %s\n", TotalExecutionTime(g_dt));
 
   /*  Check if stepNumber = 0. 
    *  Prevent NaN printLog at maxsteps = 0 */
   if (g_stepNumber > 0)
-      print ("> Average time/step       %10.2e  (sec)  \n", 
+      printLog ("> Average time/step       %10.2e  (sec)  \n", 
                  difftime(tend,tbeg)/(double)g_stepNumber);
-  else print ("> Average time/step       %10.2e  (sec)  \n",difftime(tend,tbeg));
+  else printLog ("> Average time/step       %10.2e  (sec)  \n",difftime(tend,tbeg));
 
-  print ("> Local time                %s",asctime(localtime(&tend)));
-  print ("> Done\n");
+  printLog ("> Local time                %s",asctime(localtime(&tend)));
+  printLog ("> Done\n");
 
+  #if COOLING==GRACKLE
+  // free grackle memory
+  finalize_grackle();
+  #endif
   FreeArray4D ((void *) data.Vc);
   #ifdef PARALLEL
   LogFileClose();
@@ -497,17 +510,17 @@ double NextTimeStep (timeStep *Dts, Runtime *runtime, Grid *grid)
 #if SHOW_TIME_STEPS == YES
   if (g_stepNumber%runtime->log_freq == 0) {
     char *str = IndentString();
-    print ("%s [dt(hyp)          = cfl x %10.4e]\n",str, 1.0/Dts->invDt_hyp);
+    printLog ("%s [dt(hyp)          = cfl x %10.4e]\n",str, 1.0/Dts->invDt_hyp);
     #if PARABOLIC_FLUX != NO
-    print ("%s [dt(par)          = cfl x %10.4e]\n",str, 1.0/(2.0*Dts->invDt_par));
+    printLog ("%s [dt(par)          = cfl x %10.4e]\n",str, 1.0/(2.0*Dts->invDt_par));
     #endif
     #if COOLING != NO
-    print ("%s [dt(cool)         =       %10.4e]\n",str, Dts->dt_cool);
+    printLog ("%s [dt(cool)         =       %10.4e]\n",str, Dts->dt_cool);
     #endif
     #if PARTICLES
-    print ("%s [dt   (particles) =       %10.4e]\n",str, 1.0/Dts->invDt_particles);
+    printLog ("%s [dt   (particles) =       %10.4e]\n",str, 1.0/Dts->invDt_particles);
     #if PARTICLES == PARTICLES_CR
-    print ("%s [1/omL(particles) =       %10.4e]\n",str, 1.0/Dts->omega_particles);
+    printLog ("%s [1/omL(particles) =       %10.4e]\n",str, 1.0/Dts->omega_particles);
     #endif
     #endif
   }
@@ -563,7 +576,9 @@ double NextTimeStep (timeStep *Dts, Runtime *runtime, Grid *grid)
    -------------------------------------------------------- */
 
 #if COOLING != NO
+#ifndef NO_COOL_LIMIT
   dtnext = MIN(dtnext, Dts->dt_cool);
+#endif
 #endif
 
 /* --------------------------------------------------------
@@ -592,17 +607,17 @@ double NextTimeStep (timeStep *Dts, Runtime *runtime, Grid *grid)
 
   if (dtnext < runtime->first_dt*1.e-9){
     char *str = IndentString();
-    print ("! NextTimeStep(): dt is too small (%12.6e).\n", dtnext);
-    print ("! %s [dt(adv)       = cfl x %10.4e]\n",str, 1.0/Dts->invDt_hyp);
-    print ("! %s [dt(par)       = cfl x %10.4e]\n",str, 1.0/(2.0*Dts->invDt_par));
-    print ("! %s [dt(cool)      =       %10.4e]\n",str, Dts->dt_cool);
-    print ("! %s [dt(particles) =       %10.4e]\n",str, 1.0/Dts->invDt_particles);
-    print ("! Cannot continue.\n");
+    printLog ("! NextTimeStep(): dt is too small (%12.6e).\n", dtnext);
+    printLog ("! %s [dt(adv)       = cfl x %10.4e]\n",str, 1.0/Dts->invDt_hyp);
+    printLog ("! %s [dt(par)       = cfl x %10.4e]\n",str, 1.0/(2.0*Dts->invDt_par));
+    printLog ("! %s [dt(cool)      =       %10.4e]\n",str, Dts->dt_cool);
+    printLog ("! %s [dt(particles) =       %10.4e]\n",str, 1.0/Dts->invDt_particles);
+    printLog ("! Cannot continue.\n");
     QUIT_PLUTO(1);
   }
 
   if (g_stepNumber <= 1 && (runtime->first_dt > dtnext/runtime->cfl)){
-    print ("! NextTimeStep(): initial dt exceeds stability limit\n");
+    printLog ("! NextTimeStep(): initial dt exceeds stability limit\n");
   }
 
 /* --------------------------------------------------------
@@ -610,7 +625,9 @@ double NextTimeStep (timeStep *Dts, Runtime *runtime, Grid *grid)
       step to be fixed, regardless of any stability issue.
       Beware !!
    -------------------------------------------------------- */
-
+#if (COOLING != NO) 
+  if (g_stepNumber%2 == 1) return g_dt;
+#endif
   if (runtime->cfl_max_var == 1.0) return g_dt;
   return(dtnext);
 }

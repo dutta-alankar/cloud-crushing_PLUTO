@@ -168,7 +168,7 @@ class DefineProblem(object):
     dimlist = ['1','2','3']
     geolist = ['CARTESIAN','CYLINDRICAL','POLAR','SPHERICAL']
     bfolist = ['NO','VECTOR', 'POTENTIAL', '(VECTOR+POTENTIAL)']
-    coolist = ['NO','POWER_LAW','TABULATED','TOWNSEND','SNEq','MINEq','H2_COOL', 'KROME']
+    coolist = ['NO','POWER_LAW','TABULATED','TOWNSEND','SNEq','MINEq','H2_COOL', 'KROME', 'GRACKLE']
     intlist = ['FLAT','LINEAR','LimO3','WENO3','PARABOLIC','MP5']
     tmslist = ['EULER','RK2','RK3','HANCOCK','CHARACTERISTIC_TRACING']
     ntrlist = ['%d'%n for n in range(9)]
@@ -692,6 +692,8 @@ class DefineProblem(object):
         self.pluto_path.append('Cooling/Townsend/')
       elif cool_mode == 'POWER_LAW':
         self.pluto_path.append('Cooling/Power_Law/')
+      elif cool_mode == 'GRACKLE':
+        self.pluto_path.append('Cooling/Grackle/')
       else:
         self.pluto_path.append('Cooling/'+ cool_mode +'/')
 

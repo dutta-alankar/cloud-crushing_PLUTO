@@ -164,6 +164,10 @@ double g_inputParam[32]; /**< Array containing the user-defined parameters.
  #endif
 #endif
 
+#if COOLING==GRACKLE
+  grackle_params g_grackle_params;
+#endif
+
 #if DEBUG == TRUE
   int d_indent;        /**< Number of indentation space using during debug printLoging */
   int d_condition=1;   /**< Enable/disable printLoging when a certain cond. is verified */

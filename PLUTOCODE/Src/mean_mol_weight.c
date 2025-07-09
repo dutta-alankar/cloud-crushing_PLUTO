@@ -120,9 +120,17 @@
 /* ********************************************************************* */
 #if COOLING == NO || COOLING == TABULATED || COOLING==TOWNSEND
 double MeanMolecularWeight(double *v, double oth_mu[4])
+#elif COOLING==GRACKLE
+void MeanMolecularWeight(const Data *d, Grid *grid) {
+    int k, j, i;
+    DOM_LOOP(k, j, i) {
+        d->Vgrac[MU][k][j][i] = (d->Vc[RHO][k][j][i]*UNIT_DENSITY)/(d->Vc[PRS][k][j][i]*UNIT_DENSITY*pow(UNIT_VELOCITY, 2))*(CONST_kB/CONST_mp)*d->Vgrac[TEMP][k][j][i];
+    }
+}
 #else
 double MeanMolecularWeight(double *v)
 #endif
+#if COOLING!=GRACKLE
 /*!
  *
  * Return the mean molecular weight.
@@ -268,6 +276,4 @@ double MeanMolecularWeight(double *v)
  
   return mu;
 }
-
-
-
+#endif

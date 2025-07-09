@@ -113,6 +113,8 @@ void   StaggeredRemapBoundary(double ***phi, Data_Arr Bs, RBox *, Grid *grid);
 void   MakeState (Sweep *);
 #if COOLING==NO || COOLING==TABULATED || COOLING==TOWNSEND
 double MeanMolecularWeight(double *, double *);
+#elif COOLING==GRACKLE
+void MeanMolecularWeight(const Data *, Grid *);
 #else
 double MeanMolecularWeight(double *);
 #endif
