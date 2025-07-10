@@ -102,7 +102,8 @@ void InitDomain (Data *d, Grid *grid)
   TOT_LOOP(k,j,i) {
     double distance = sqrt(pow(x1[i]-x_offset, 2.) + pow(x2[j], 2.) + pow(x3[k], 2.));
     d->Vc[RHO][k][j][i] = ((distance <= 1.0)? chi : 1.) * rhoWind; 
-    d->Vc[PRS][k][j][i] = ((distance <= 1.0)? (chi/eta) : 1.) * pWind;
+    d->Vc[PRS][k][j][i] = pWind;
+    d->Vc[Z_MET][k][j][i] = (distance <= 1.0)? g_inputParam[ZMET_CL] : g_inputParam[ZMET_W];
     DIM_EXPAND(
       d->Vc[VX1][k][j][i] = (distance > 1.0)? vWind : 0.;,
       d->Vc[VX2][k][j][i] = 0.;,
@@ -129,7 +130,6 @@ void InitDomain (Data *d, Grid *grid)
     d->Vc[elec][k][j][i]     = (d->Vc[X_HII][k][j][i] +
                                (d->Vc[Y_HeII][k][j][i]+2*d->Vc[Y_HeIII][k][j][i])/4.)*d->Vc[RHO][k][j][i];
     */
-    d->Vc[Z_MET][k][j][i]    = g_inputParam[METAL];
     #endif
   } // end of TOT_LOOP
   #if COOLING==GRACKLE
@@ -481,31 +481,32 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
   double tiny_number = 1.e-20;
   if (side == 0 && g_stepNumber>0) {    /* -- check solution inside domain -- */
     DOM_LOOP(k,j,i) {
+      // double distance = sqrt(pow(x1[i]-x_offset, 2.) + pow(x2[j], 2.) + pow(x3[k], 2.));
       if (d->Vgrac[TEMP][k][j][i] < 0.8*Tcl) {
-	  d->Vgrac[TEMP][k][j][i] = Tcl;
-	  static double mu_eq = -1.;
-	  if (mu_eq<0) {
-	    d->Vc[X_HI][k][j][i]     = 1.0;
-            d->Vc[X_HII][k][j][i]    = tiny_number;
-            d->Vc[Y_HeI][k][j][i]    = 1.0;
-            d->Vc[Y_HeII][k][j][i]   = tiny_number;
-            d->Vc[Y_HeIII][k][j][i]  = tiny_number;
-            d->Vc[X_HM][k][j][i]     = tiny_number;
-            d->Vc[X_H2I][k][j][i]    = tiny_number;
-            d->Vc[X_H2II][k][j][i]   = tiny_number;
-            d->Vc[X_DI][k][j][i]     = tiny_number;
-            d->Vc[X_DII][k][j][i]    = 2.0 * 3.4e-05;
-            d->Vc[X_HDI][k][j][i]    = tiny_number;
-            /*
-            d->Vc[elec][k][j][i]     = (d->Vc[X_HII][k][j][i] +
-                                       (d->Vc[Y_HeII][k][j][i]+2*d->Vc[Y_HeIII][k][j][i])/4.)*d->Vc[RHO][k][j][i];
-            */
-            d->Vc[Z_MET][k][j][i]    = g_inputParam[METAL];
-            call_grackle_equil_by_cell (d, grid, i, j, k);
-	    mu_eq = d->Vgrac[MU][k][j][i];
-	  }
-	  d->Vgrac[MU][k][j][i] = mu_eq;
-          d->Vc[PRS][k][j][i] = (d->Vc[RHO][k][j][i] * Tcl) / ( pow(UNIT_VELOCITY,2) * (mu_eq * CONST_mp)/CONST_kB ); 
+        d->Vgrac[TEMP][k][j][i] = Tcl;
+        static double mu_eq = -1.;
+        if (mu_eq<0) {
+          d->Vc[X_HI][k][j][i]     = 1.0;
+          d->Vc[X_HII][k][j][i]    = tiny_number;
+          d->Vc[Y_HeI][k][j][i]    = 1.0;
+          d->Vc[Y_HeII][k][j][i]   = tiny_number;
+          d->Vc[Y_HeIII][k][j][i]  = tiny_number;
+          d->Vc[X_HM][k][j][i]     = tiny_number;
+          d->Vc[X_H2I][k][j][i]    = tiny_number;
+          d->Vc[X_H2II][k][j][i]   = tiny_number;
+          d->Vc[X_DI][k][j][i]     = tiny_number;
+          d->Vc[X_DII][k][j][i]    = 2.0 * 3.4e-05;
+          d->Vc[X_HDI][k][j][i]    = tiny_number;
+          /*
+          d->Vc[elec][k][j][i]     = (d->Vc[X_HII][k][j][i] +
+                                      (d->Vc[Y_HeII][k][j][i]+2*d->Vc[Y_HeIII][k][j][i])/4.)*d->Vc[RHO][k][j][i];
+          */
+          // d->Vc[Z_MET][k][j][i] = g_inputParam[ZMET_W];
+          call_grackle_equil_by_cell (d, grid, i, j, k);
+          mu_eq = d->Vgrac[MU][k][j][i];
+        }
+        d->Vgrac[MU][k][j][i] = mu_eq;
+        d->Vc[PRS][k][j][i] = (d->Vc[RHO][k][j][i] * Tcl) / ( pow(UNIT_VELOCITY,2) * (mu_eq * CONST_mp)/CONST_kB ); 
       }
     }
   }
@@ -523,8 +524,9 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
         d->Vc[VX2][k][j][i] = 0.;,
         d->Vc[VX3][k][j][i] = 0.;
         )
-	    d->Vc[TRC][k][j][i] = 0.;
-	    #if COOLING==GRACKLE
+        d->Vc[TRC][k][j][i] = 0.;
+        d->Vc[Z_MET][k][j][i] = g_inputParam[ZMET_W];
+	      #if COOLING==GRACKLE
         d->Vgrac[TEMP][k][j][i] = (d->Vc[PRS][k][j][i]/d->Vc[RHO][k][j][i])*(mu*CONST_mp/CONST_kB)*pow(UNIT_VELOCITY, 2);
         d->Vgrac[MU][k][j][i] = mu;
         NIONS_LOOP(nv) d->Vc[nv][k][j][i] = 0;
@@ -544,7 +546,7 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
           d->Vc[elec][k][j][i]     = (d->Vc[X_HII][k][j][i] +
                                      (d->Vc[Y_HeII][k][j][i]+2*d->Vc[Y_HeIII][k][j][i])/4.)*d->Vc[RHO][k][j][i];
           */
-          d->Vc[Z_MET][k][j][i]    = g_inputParam[METAL];
+          d->Vc[Z_MET][k][j][i] = g_inputParam[ZMET_W];
           call_grackle_equil_by_cell (d, grid, i, j, k);
           HI_w = d->Vc[X_HI][k][j][i];
           HII_w = d->Vc[X_HII][k][j][i];
@@ -575,10 +577,9 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
         d->Vc[elec][k][j][i] = elec_w;
         d->Vgrac[TEMP][k][j][i] = temp_eq;
         d->Vgrac[MU][k][j][i] = mu_eq;
-        d->Vc[Z_MET][k][j][i]    = g_inputParam[METAL];
-
+        d->Vc[Z_MET][k][j][i] = g_inputParam[ZMET_W];
         once ++;
-	    #endif
+	      #endif
       }
     }else if (box->vpos == X1FACE){
       BOX_LOOP(box,k,j,i){  }
@@ -598,7 +599,7 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
         d->Vc[VX2][k][j][i] = d->Vc[VX2][k][j][i-1];
         d->Vc[VX3][k][j][i] = d->Vc[VX3][k][j][i-1];
         #if COOLING==GRACKLE
-	    for(nv=X_HI; nv<=Z_MET; nv++) d->Vc[nv][k][j][i] = d->Vc[nv][k][j][i-1];
+	      for(nv=X_HI; nv<=Z_MET; nv++) d->Vc[nv][k][j][i] = d->Vc[nv][k][j][i-1];
         #endif
       }
     }else if (box->vpos == X1FACE){

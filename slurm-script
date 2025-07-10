@@ -1,0 +1,42 @@
+#!/bin/bash -l
+
+# Standard output and error:
+#SBATCH -o ./tjob.%x.out.%j
+#SBATCH -e ./tjob.%x.err.%j
+#SBATCH --job-name="CC-grac"
+#
+# Number of nodes and MPI tasks per node:
+#SBATCH --nodes=15
+#SBATCH --ntasks-per-node=40
+#
+#SBATCH --mail-type=BEGIN
+#SBATCH --mail-user=alankard@mpa-garching.mpg.de
+#
+# Partition
+#SBATCH --partition=p.24h
+# Wall clock limit:
+#SBATCH --time=00-23:59:58
+
+# Load compiler and MPI modules with explicit version specifications,
+# consistently with the versions used to build the executable.
+
+echo "Working Directory = $(pwd)"
+
+cd $SLURM_SUBMIT_DIR
+export OUTPUT_LOC=$SLURM_SUBMIT_DIR
+export PROG="./pluto" 
+# export ARGS="-catalyst 1 AllFieldsCatalyst.py"
+# export ARGS="-maxsteps 500"
+mkdir -p $OUTPUT_LOC/Log_Files $OUTPUT_LOC/snapshots
+
+module purge
+module load gcc/11 openmpi/4 hdf5-mpi/1.8.22
+
+export LD_LIBRARY_PATH="/mpcdf/soft/SLE_15/packages/skylake/openmpi/gcc_11-11.2.0/4.0.7/lib:/mpcdf/soft/SLE_15/packages/skylake/gsl/gcc_11-11.2.0/2.4/lib:/mpcdf/soft/SLE_15/packages/skylake/fftw/gcc_11-11.2.0-openmpi_4-4.0.7/3.3.10/lib:/mpcdf/soft/SLE_15/packages/skylake/hdf5/gcc_11-11.2.0-openmpi_4-4.0.7/1.8.22/lib:/freya/ptmp/mpa/adutt/pluto-mit-grackle/grackle-install/openmpi_4.0.7/gcc_11-11.2.0/lib64:$LD_LIBRARY_PATH"
+
+# export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/mpcdf/soft/SLE_15/packages/x86_64/paraview/5.10.1/lib/catalyst"
+
+
+# export VTK_SILENCE_GET_VOID_POINTER_WARNINGS=1
+
+srun $PROG $ARGS
