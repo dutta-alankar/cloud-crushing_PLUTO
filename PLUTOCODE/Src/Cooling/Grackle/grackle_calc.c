@@ -425,8 +425,8 @@ void call_grackle (const Data *d, double dt, timeStep *Dts, Grid *grid, int one_
         }
         normalize_ions_grackle(d, grackle_config_data, i, j, k);
         // solar metallicity
-        if (grackle_config_data->metal_cooling == 1) 
-            d->Vc[Z_MET][k][j][i] = grackle_chemistry_fields.metal_density[id]/(grackle_chemistry_fields.density[id]*grackle_config_data->SolarMetalFractionByMass);
+        // if (grackle_config_data->metal_cooling == 1) 
+        //     d->Vc[Z_MET][k][j][i] = grackle_chemistry_fields.metal_density[id]/(grackle_chemistry_fields.density[id]*grackle_config_data->SolarMetalFractionByMass);
 
         // printLog("> step %d t=%e, dt=%e,  after: prs/kB = %e, temp = %e, mu=%f\n", g_stepNumber, g_time, g_dt, (d->Vc[PRS][k][j][i]*UNIT_DENSITY*pow(UNIT_VELOCITY,2))/CONST_kB, d->Vgrac[TEMP][k][j][i], d->Vgrac[MU][k][j][i]);
         counter++;

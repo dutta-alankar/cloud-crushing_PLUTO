@@ -68,16 +68,16 @@ void InitDomain (Data *d, Grid *grid)
   double oth_mu[4];
   double mu = MeanMolecularWeight((double*)d->Vc, oth_mu);
   #elif COOLING==GRACKLE
-  double mu = 0.626;
+  double mu_wind = 0.626, mu_cl = 1.048;
+  double mu = mu_wind;
   #else
   double mu = MeanMolecularWeight((double*)d->Vc);
   #endif
 
-  printLog("> Mean molecular weights: \n"); 
+  
   #if COOLING==NO || COOLING==TABULATED || COOLING==TOWNSEND 
+  printLog("> Mean molecular weights: \n"); 
   printLog("  mu = %.3f\tmue = %.3f\tmui = %.3f\n\n",mu, oth_mu[0], oth_mu[1]);
-  #else
-  printLog("  mu = %.3f\n\n",mu);
   #endif
 
   double nmin     = 1e-6;
@@ -108,12 +108,10 @@ void InitDomain (Data *d, Grid *grid)
       d->Vc[VX2][k][j][i] = 0.;,
       d->Vc[VX3][k][j][i] = 0.;
     )
-    d->Vc[TRC][k][j][i] = (distance <= 1.0)? 1.0 : 0.;
     #if COOLING==GRACKLE
-    d->Vc[Z_MET][k][j][i] = (distance <= 1.0)? g_inputParam[ZMET_CL] : g_inputParam[ZMET_W];
     double tiny_number = 1.e-20;
-    d->Vgrac[TEMP][k][j][i] = (d->Vc[PRS][k][j][i]/d->Vc[RHO][k][j][i])*(mu*CONST_mp/CONST_kB)*pow(UNIT_VELOCITY, 2);
-    d->Vgrac[MU][k][j][i] = mu;
+    d->Vgrac[TEMP][k][j][i] = ((distance <= 1.0)? 1. : eta) * g_inputParam[TCL];
+    d->Vgrac[MU][k][j][i] = (distance <= 1.0)? mu_cl : mu_wind;
     NIONS_LOOP(nv) d->Vc[nv][k][j][i] = 0;
     d->Vc[X_HI][k][j][i]     = (distance > 1.0)? tiny_number : 1.0;
     d->Vc[X_HII][k][j][i]    = (distance > 1.0)? 1.0 : tiny_number;
@@ -130,10 +128,27 @@ void InitDomain (Data *d, Grid *grid)
     d->Vc[elec][k][j][i]     = (d->Vc[X_HII][k][j][i] +
                                (d->Vc[Y_HeII][k][j][i]+2*d->Vc[Y_HeIII][k][j][i])/4.)*d->Vc[RHO][k][j][i];
     */
+    d->Vc[Z_MET][k][j][i] = (distance <= 1.0)? g_inputParam[ZMET_CL] : g_inputParam[ZMET_W];
     #endif
+    d->Vc[TRC][k][j][i] = (distance <= 1.0)? 1.0 : 0.;
   } // end of TOT_LOOP
   #if COOLING==GRACKLE
   call_grackle_equil(d, grid);
+  printLog("> Mean molecular weights: \n");
+  int disp_wind = 0, disp_cloud = 0;
+  DOM_LOOP(k,j,i) {
+    if (disp_wind>0 && disp_cloud>0) continue;
+    double distance = sqrt(pow(x1[i]-x_offset, 2.) + pow(x2[j], 2.) + pow(x3[k], 2.));
+    if (distance<=1.0 && disp_cloud==0) {
+      printLog("mu_cloud = %.3f\t", d->Vgrac[MU][k][j][i]);
+      disp_cloud++;
+    }
+    else if (disp_wind==0) {
+      printLog("mu_wind = %.3f\t", d->Vgrac[MU][k][j][i]);
+      disp_wind++;
+    }
+  }
+  printLog("\n");
   #endif
 }
 

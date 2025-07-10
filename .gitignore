@@ -68,3 +68,5 @@ cooltable-new.dat
 pluto
 *.pvsm
 *.session
+tjob.*
+core.*

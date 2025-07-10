@@ -109,7 +109,7 @@ void AdvectFlux (const Sweep *sweep, int beg, int end, Grid *grid)
       }       
     }
     if (g_grackle_params.grackle_metal_cooling!=1)
-        flux[Z_MET] = 0.;
+      flux[Z_MET] = 0.;
 
     #endif
 

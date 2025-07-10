@@ -3,19 +3,19 @@
 # Standard output and error:
 #SBATCH -o ./tjob.%x.out.%j
 #SBATCH -e ./tjob.%x.err.%j
-#SBATCH --job-name="CC-grac"
+#SBATCH --job-name="CC-test"
 #
 # Number of nodes and MPI tasks per node:
-#SBATCH --nodes=15
+#SBATCH --nodes=2
 #SBATCH --ntasks-per-node=40
 #
 #SBATCH --mail-type=NONE
 #SBATCH --mail-user=alankard@mpa-garching.mpg.de
 #
 # Partition
-#SBATCH --partition=p.24h
+#SBATCH --partition=p.test
 # Wall clock limit:
-#SBATCH --time=00-23:59:58
+#SBATCH --time=00-00:29:58
 
 # Load compiler and MPI modules with explicit version specifications,
 # consistently with the versions used to build the executable.

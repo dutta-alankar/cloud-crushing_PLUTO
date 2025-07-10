@@ -160,10 +160,10 @@ void UpdateStage(Data *d, Data_Arr Uc, Data_Arr Us, double **aflux,
       g_i = i;  g_j = j;  g_k = k;
       for ((*ip) = 0; (*ip) < ntot; (*ip)++) {
         #if COOLING==GRACKLE
-	NIONS_LOOP(nv) {
-          if (nv==elec || nv==Z_MET) continue;
-	  if (isnan(d->Vc[nv][k][j][i]) || (d->Vc[nv][k][j][i]<0.)) d->Vc[nv][k][j][i] = 0.;
-        }
+	    NIONS_LOOP(nv) {
+        if (nv==elec || nv==Z_MET) continue;
+	      if (isnan(d->Vc[nv][k][j][i]) || (d->Vc[nv][k][j][i]<0.)) d->Vc[nv][k][j][i] = 0.;
+      }
 	// normalize ions
 	double norm_H=0., norm_He=0.;
 	NIONS_LOOP(nv) {

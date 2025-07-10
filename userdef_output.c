@@ -31,7 +31,7 @@ void ComputeUserVar (const Data *d, Grid *grid)
   double dummy[4];
   double mu = MeanMolecularWeight((double*)d->Vc, dummy);
   #elif COOLING==GRACKLE
-  double ***mu;
+  double ***mu = d->Vgrac[MU]; // dummy
   #else
   double mu = MeanMolecularWeight((double*)d->Vc);
   #endif
@@ -40,7 +40,6 @@ void ComputeUserVar (const Data *d, Grid *grid)
   n    = GetUserVar("ndens");
   p    = GetUserVar("PbykB");
   mach = GetUserVar("mach");
-  mu   = GetUserVar("meanMass");
   celldV = GetUserVar("cellvol");
   
   TOT_LOOP(k,j,i) {
@@ -49,11 +48,9 @@ void ComputeUserVar (const Data *d, Grid *grid)
      #if COOLING!=GRACKLE
      T[k][j][i] = (d->Vc[PRS][k][j][i]/d->Vc[RHO][k][j][i])*(mu*CONST_mp)/CONST_kB*pow(UNIT_VELOCITY,2);
      n[k][j][i] = d->Vc[RHO][k][j][i] * UNIT_DENSITY / (mu * CONST_mp);
-     mu[k][j][i] = mu;
      #else
-     mu[k][j][i] = d->Vgrac[MU][k][j][i];
      T[k][j][i]  = d->Vgrac[TEMP][k][j][i];
-     n[k][j][i]  = d->Vc[RHO][k][j][i] * UNIT_DENSITY / (mu[k][j][i] * CONST_mp);
+     n[k][j][i]  = d->Vc[RHO][k][j][i] * UNIT_DENSITY / (d->Vgrac[MU][k][j][i] * CONST_mp);
      #endif
      p[k][j][i] = d->Vc[PRS][k][j][i] * UNIT_DENSITY * pow(UNIT_VELOCITY,2.) / CONST_kB;
      mach[k][j][i] = sqrt( DIM_EXPAND(d->Vc[VX1][k][j][i]*d->Vc[VX1][k][j][i],
