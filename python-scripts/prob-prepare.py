@@ -51,7 +51,7 @@ Tcl = 1.0e+04 # K
 cloud_pos = 10.0 # Rcl
 metallicity = 1.0 # ZSun
 gamma = 5/3.
-ncl = 1.0e-03 # cm^-3
+ncl = 0.1 # cm^-3
 
 wind_extent = 100 # Rcl
 prp_extent  = 22 # Rcl
@@ -134,9 +134,9 @@ UNIT_DENSITY = nwind*mu_wind*mp
 UNIT_LENGTH = Rcl
 UNIT_VELOCITY = vwind
 
-print(f"UNIT_DENSITY  = {UNIT_DENSITY/(mu_wind*mp):.2e} cm^-3")
-print(f"UNIT_LENGTH   = {UNIT_LENGTH/pc:.2e} pc")
-print(f"UNIT_VELOCITY = {UNIT_VELOCITY/1.0e+05:.2e} km s^-1")
+print(f"UNIT_DENSITY  = {UNIT_DENSITY/(mu_wind*mp):.2e} cm^-3 = {UNIT_DENSITY} g cm^-3")
+print(f"UNIT_LENGTH   = {UNIT_LENGTH/pc:.2e} pc = {UNIT_LENGTH} cm")
+print(f"UNIT_VELOCITY = {UNIT_VELOCITY/1.0e+05:.2e} km s^-1 = {UNIT_VELOCITY} cm s^-1")
 
 ini_content = f"""
 [Grid]
