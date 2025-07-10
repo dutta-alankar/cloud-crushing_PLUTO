@@ -6,13 +6,25 @@ Created on Fri Mar 29 14:59:59 2024
 """
 import numpy as np
 from scipy.interpolate import interp1d
-import subprocess as sp
 import os
 import re
+import subprocess as sp
+
+from pygrackle import \
+    chemistry_data, \
+    evolve_constant_density, \
+    setup_fluid_container
+
+from pygrackle.utilities.model_tests import \
+    get_model_set, \
+    model_test_format_version
+
+grackle_data_dir = "/freya/ptmp/mpa/adutt/pluto-mit-grackle/cloud-crushing_PLUTO/python-scripts/.venv/grackle/grackle_data_files/input"
 
 ## useful constants
 yr = 365 * 24 * 60**2
 Myr = 1e6 * yr
+Gyr = 1e3 * Myr
 pi = np.pi
 pc = 3.0856775807e18
 kpc = 1e3 * pc
@@ -30,57 +42,91 @@ H0 = 67.74
 H0cgs = H0 * ((km / s) / Mpc)
 dcrit0 = 3 * H0cgs**2 / (8.0 * pi * G)
 MSun = 2.0e33
-X_solar = 0.7154
-Y_solar = 0.2703
-Z_solar = 0.0143
-
-# Set the simulation features
-cooling = True
-catalyst = False
-auto_compile = False
-boost = True
 
 # Set the simulation parameters
-chi  = 100
 eta  = 100
 mach = 1.5
 tcoolmBtcc = 0.50
-Tcl = 4.0e+04 # K
+Tcl = 1.0e+04 # K
 cloud_pos = 10.0 # Rcl
 metallicity = 1.0 # ZSun
 gamma = 5/3.
-ncl = 0.1 # cm^-3
+ncl = 1.0e-03 # cm^-3
 
 wind_extent = 100 # Rcl
 prp_extent  = 22 # Rcl
 RclBdcell = 16
 
-tcc = np.sqrt(chi)
-dump_time = 1.0*tcc
-analysis_time = 0.1*tcc
-t_stop = 25*tcc
+redshift = 0.
+specific_heating_rate = 0.
+volumetric_heating_rate = 0.
+# dictionary to store extra information in output dataset
+extra_attrs = {}
 
-log_steps = 100
+# Set solver parameters
+my_chemistry = chemistry_data()
+my_chemistry.use_grackle = 1
+my_chemistry.with_radiative_cooling = 0
+my_chemistry.primordial_chemistry = 0
+my_chemistry.metal_cooling = 1
+my_chemistry.UVbackground = 1
+my_chemistry.self_shielding_method = 0
+my_chemistry.H2_self_shielding = 0
+my_chemistry.grackle_data_file = os.path.join(grackle_data_dir, "CloudyData_UVB=HM2012.h5")
 
-Xp = X_solar * (1 - metallicity * Z_solar) / (X_solar + Y_solar)
-Yp = Y_solar * (1 - metallicity * Z_solar) / (X_solar + Y_solar)
-Zp = metallicity * Z_solar
+my_chemistry.use_specific_heating_rate = 1
+my_chemistry.use_volumetric_heating_rate = 1
 
-cooltable_name = "cooltable-SD93.dat"
-cooltable = np.loadtxt(f"../cooltables/{cooltable_name}")
-LAMBDA = interp1d(cooltable[:,0], cooltable[:,1], fill_value="extrapolate")
-mu = 1./(2*Xp+0.75*Yp+0.5625*Zp)
+# Set units
+my_chemistry.comoving_coordinates = 0 # proper units
+my_chemistry.a_units = 1.0
+my_chemistry.a_value = 1.0 / (1.0 + redshift) / \
+my_chemistry.a_units
+my_chemistry.density_units = mp
+my_chemistry.length_units = kpc    
+my_chemistry.time_units = Myr
+my_chemistry.set_velocity_units()
 
-mu_wind = 0.595
-mu_cl = 1.234
-nwind = ncl/chi
+# Call convenience function for setting up a fluid container.
+# This container holds the solver parameters, units, and fields.
+metal_mass_fraction = metallicity * my_chemistry.SolarMetalFractionByMass
+temperature = np.logspace(1, 9, 200)
+fc = setup_fluid_container(
+    my_chemistry,
+    density=mp,
+    temperature=temperature,
+    metal_mass_fraction=metal_mass_fraction,
+    converge=True)
+
+if my_chemistry.use_specific_heating_rate:
+    fc["specific_heating_rate"][:] = specific_heating_rate
+if my_chemistry.use_volumetric_heating_rate:
+    fc["volumetric_heating_rate"][:] = volumetric_heating_rate
+
+# get data arrays with symbolic units
+data = fc.finalize_data()
+
+LAMBDA = interp1d(data["temperature"], np.abs(data["cooling_rate"]), fill_value="extrapolate")
+mu_val = interp1d(data["temperature"], data["mean_molecular_weight"], fill_value="extrapolate")
+np.savetxt("grackle-gas_prop.txt", np.vstack(( data["temperature"].value, 
+                                                np.abs(data["cooling_rate"].value), 
+                                                data["mean_molecular_weight"].value )).T)
+
+mu_wind = mu_val(eta*Tcl)
+mu_cl = mu_val(Tcl)
+chi = mu_cl/mu_wind * eta
+print(f"mu_w = {mu_wind:.3f}, mu_cl = {mu_cl:.3f}")
+print(f"chi = {chi:.2f}")
+
+nwind = ncl/eta
 Twind = eta*Tcl
-vwind = mach*np.sqrt(gamma*kB*Twind/(mu*mp))
+
+vwind = mach*np.sqrt(gamma*kB*Twind/(mu_wind*mp))
 Pwind = nwind*kB*Twind
 Tmix  = np.sqrt(Tcl*Twind)
 nmix  = np.sqrt(ncl*nwind)
 Pmix  = nmix*kB*Tmix
-nHmix = nmix*mu*(mp/mH)*Xp
+nHmix = nmix*mu_val(Tmix)*(mp/mH)*0.716
 tcoolmix = (1./(gamma-1))*Pmix/(nHmix*nHmix*LAMBDA(Tmix))
 Rcl = vwind*tcoolmix/(np.sqrt(chi)*tcoolmBtcc)
 
@@ -88,73 +134,9 @@ UNIT_DENSITY = nwind*mu_wind*mp
 UNIT_LENGTH = Rcl
 UNIT_VELOCITY = vwind
 
-# Seems like GO estimate is less by a factor of 2
-alpha = 1.0
-Rgo  = 2 * (Tcl/1e4)**(5/2.)*mach/(((Pmix/kB)/1e3)*(LAMBDA(np.sqrt(chi)*Tcl)/10**-21.4) ) *(chi/100) * (alpha**-1) # pc
-Rcl_est  = (tcoolmBtcc**-1) * Rgo # pc
-
-print(f"UNIT_DENSITY  = {UNIT_DENSITY/(mu*mp):.2e} cm^-3")
+print(f"UNIT_DENSITY  = {UNIT_DENSITY/(mu_wind*mp):.2e} cm^-3")
 print(f"UNIT_LENGTH   = {UNIT_LENGTH/pc:.2e} pc")
 print(f"UNIT_VELOCITY = {UNIT_VELOCITY/1.0e+05:.2e} km s^-1")
-
-output_dir = f"output-{'wb' if boost else 'nb'}-chi{chi:.1f}eta{eta:.1f}mach{mach:.2f}tcoolmBtcc{tcoolmBtcc:.2e}Tcl{Tcl:.2e}met{metallicity:.2f}-{'w_cool' if cooling else 'n_cool'}-res{RclBdcell}"
-
-if auto_compile:
-    os.system(f"mkdir -p ../{output_dir}/Log_Files")
-    os.system(f"mkdir -p ../{output_dir}/snapshots")
-    if cooling:
-        os.system("cp ../makefiles/makefile-tab_cool ../makefile")
-    else:
-        os.system("cp ../makefiles/makefile-no_cool ../makefile")
-
-def_content = f"""
-#define  PHYSICS                        HD
-#define  DIMENSIONS                     3
-#define  GEOMETRY                       CARTESIAN
-#define  BODY_FORCE                     NO
-#define  COOLING                        {'NO' if not(cooling) else 'GRACKLE'}
-#define  RECONSTRUCTION                 LINEAR
-#define  TIME_STEPPING                  RK3
-#define  NTRACER                        1
-#define  PARTICLES                      NO
-#define  USER_DEF_PARAMETERS            7
-
-/* -- physics dependent declarations -- */
-
-#define  DUST_FLUID                     NO
-#define  EOS                            IDEAL
-#define  ENTROPY_SWITCH                 NO
-#define  THERMAL_CONDUCTION             NO
-#define  VISCOSITY                      NO
-#define  ROTATING_FRAME                 NO
-#define  INTERNAL_BOUNDARY              YES
-#define  SHOW_TIMING                    NO
-#define  SHOW_TIME_STEPS                YES
-#define  BOOST                          {'YES' if boost else 'NO'} 
-
-/* -- user-defined parameters (labels) -- */
-
-#define  CHI                            0
-#define  ETA                            1
-#define  MACH                           2
-#define  TCOOL_TCC                      3
-#define  TCL                            4
-#define  XOFFSET                        5
-#define  METAL                          6
-
-/* [Beg] user-defined constants (do not change this line) */
-
-#define  UNIT_DENSITY                   {UNIT_DENSITY:.4e}
-#define  UNIT_LENGTH                    {UNIT_LENGTH:.4e}
-#define  UNIT_VELOCITY                  {UNIT_VELOCITY:.4e}
-
-/* [End] user-defined constants (do not change this line) */
-#define  MULTIPLE_LOG_FILES             YES
-#define  VERBOSE                        NO
-"""
-
-with open("../definitions.h", "w") as ascii:
-    ascii.write(def_content[1:])
 
 ini_content = f"""
 [Grid]
@@ -162,91 +144,9 @@ ini_content = f"""
 X1-grid    1     0.00        {(wind_extent*RclBdcell):d}         u        {wind_extent:.2f}
 X2-grid    1     {(-0.5*prp_extent):.2f}        {(prp_extent*RclBdcell):d}         u        {(0.5*prp_extent):.2f}
 X3-grid    1     {(-0.5*prp_extent):.2f}        {(prp_extent*RclBdcell):d}         u        {(0.5*prp_extent):.2f}
-
-[Chombo Refinement]
-
-Levels           4
-Ref_ratio        2 2 2 2 2
-Regrid_interval  2 2 2 2
-Refine_thresh    0.3
-Tag_buffer_size  3
-Block_factor     8
-Max_grid_size    64
-Fill_ratio       0.75
-
-[Time]
-
-CFL              0.3
-CFL_max_var      1.1
-tstop            {t_stop:.1f}
-first_dt         1e-07
-
-[Solver]
-
-Solver         hllc
-
-[Boundary]
-
-X1-beg        userdef
-X1-end        outflow
-X2-beg        outflow
-X2-end        outflow
-X3-beg        outflow
-X3-end        outflow
-
-[Static Grid Output]
-
-uservar    5    Temp   ndens   PbykB   mach   cellvol 
-output_dir ./snapshots
-log_dir    ./Log_Files
-dbl       -1.0          -1   single_file
-flt       -1.0          -1   single_file
-vtk       -1.0          -1   single_file
-dbl.h5    {(10*dump_time):.2e}      -1   single_file
-flt.h5    {dump_time:.2e}      -1   single_file
-tab       -1.0          -1
-ppm       -1.0          -1
-png       -1.0          -1
-log        {log_steps}
-analysis  {analysis_time:.2e}      -1
-
-[Chombo HDF5 output]
-
-Checkpoint_interval  -1.0  0
-Plot_interval         1.0  0
-
-[Particles]
-
-Nparticles             0   -1
-particles_dbl       -1.0   -1
-particles_flt       -1.0   -1
-particles_vtk       -1.0   -1
-particles_tab       -1.0   -1
-
-[Grackle]
-
-primordial_chemistry     1
-dust_chemistry           0
-metal_cooling            1
-UVbackground             1
-grackle_data_file        ./data/CloudyData_UVB=HM2012.h5
-use_temperature_floor    1
-temperature_floor        {Tcl:.2e}
-grackle_verbose          0
-
-[Parameters]
-
-CHI                {chi:.1f}
-ETA                {eta:.1f}
-MACH               {mach:.2f}
-TCOOL_TCC          {tcoolmBtcc:.2e}
-TCL                {Tcl:.2e}
-XOFFSET            {cloud_pos:.1f}
-METAL              {metallicity:.2f}
 """
 
-with open("../pluto.ini", "w") as ascii:
-    ascii.write(ini_content[1:])
+print(ini_content)
 
 details = os.uname()
 year = sp.getoutput('date +"%Y"')
@@ -281,19 +181,3 @@ MPI_C_COMPILER = {mpi_compiler}
 
 with open("../sysconf.out", "w") as ascii:
     ascii.write(sysconf[1:])
-
-if catalyst:
-    os.system("python generateCatalystAdaptor.py")
-
-if auto_compile:
-    os.system("cd .. && make -j8 && make clean")
-    os.system(f"mv ../pluto.ini ../{output_dir}")
-    os.system(f"mv ../definitions.h ../{output_dir}")
-    os.system(f"mv ../sysconf.out ../{output_dir}")
-    os.system(f"mv ../pluto ../{output_dir}")
-    os.system(f"cp ../job-scripts/slurm-script ../{output_dir}")
-    if cooling:
-        os.system(f"cp ../cooltables/{cooltable_name} ../{output_dir}/cooltable.dat")
-    print(f"To run the job change directory using: \ncd ../{output_dir}")
-else:
-    print(f"Output dir: \n{output_dir}")
