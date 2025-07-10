@@ -68,7 +68,7 @@ void InitDomain (Data *d, Grid *grid)
   double oth_mu[4];
   double mu = MeanMolecularWeight((double*)d->Vc, oth_mu);
   #elif COOLING==GRACKLE
-  double mu = 0.609;
+  double mu = 0.626;
   #else
   double mu = MeanMolecularWeight((double*)d->Vc);
   #endif
@@ -103,7 +103,6 @@ void InitDomain (Data *d, Grid *grid)
     double distance = sqrt(pow(x1[i]-x_offset, 2.) + pow(x2[j], 2.) + pow(x3[k], 2.));
     d->Vc[RHO][k][j][i] = ((distance <= 1.0)? chi : 1.) * rhoWind; 
     d->Vc[PRS][k][j][i] = pWind;
-    d->Vc[Z_MET][k][j][i] = (distance <= 1.0)? g_inputParam[ZMET_CL] : g_inputParam[ZMET_W];
     DIM_EXPAND(
       d->Vc[VX1][k][j][i] = (distance > 1.0)? vWind : 0.;,
       d->Vc[VX2][k][j][i] = 0.;,
@@ -111,6 +110,7 @@ void InitDomain (Data *d, Grid *grid)
     )
     d->Vc[TRC][k][j][i] = (distance <= 1.0)? 1.0 : 0.;
     #if COOLING==GRACKLE
+    d->Vc[Z_MET][k][j][i] = (distance <= 1.0)? g_inputParam[ZMET_CL] : g_inputParam[ZMET_W];
     double tiny_number = 1.e-20;
     d->Vgrac[TEMP][k][j][i] = (d->Vc[PRS][k][j][i]/d->Vc[RHO][k][j][i])*(mu*CONST_mp/CONST_kB)*pow(UNIT_VELOCITY, 2);
     d->Vgrac[MU][k][j][i] = mu;
@@ -269,7 +269,7 @@ void Analysis (const Data *d, Grid *grid)
     #if COOLING!=GRACKLE
     T_gas = (d->Vc[PRS][k][j][i]/d->Vc[RHO][k][j][i])*pow(UNIT_VELOCITY,2)*(CONST_mp*mu)/CONST_kB;
     #else
-    T_gas = (d->Vc[PRS][k][j][i]/d->Vc[RHO][k][j][i])*pow(UNIT_VELOCITY,2)*(CONST_mp*mu[k][j][i])/CONST_kB;
+    T_gas = d->Vgrac[TEMP][k][j][i];
     #endif
     for (cloud_indx=0; cloud_indx<(int)(sizeof(rho_cut) / sizeof(rho_cut[0])); cloud_indx++){
         if (d->Vc[RHO][k][j][i] >= (rho_wind*rho_cut[cloud_indx])){
@@ -472,7 +472,7 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
   double dummy[4];
   double mu = MeanMolecularWeight((double*)d->Vc, dummy);
   #elif COOLING==GRACKLE
-  double mu = 0.609;
+  double mu = 0.626;
   #else
   double mu = MeanMolecularWeight((double*)d->Vc);
   #endif
