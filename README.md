@@ -6,6 +6,8 @@
 > We are using a custom-modified version of `PLUTO` 4.4 patch 2. The original `PLUTO` code has been written and maintained by Andrea Mignone & collaborators.
 > If you need help setting up `PLUTO` check this video: [https://youtu.be/r9u9rUA1_fw](https://youtu.be/r9u9rUA1_fw) and also this link [here](https://sites.google.com/view/ritalighosh-pluto-code-setup/home) (Credit: [Ritali Ghosh](https://www.ritalighosh.com)). You may also look at the comprehensive user guide that comes with `PLUTO` [here](https://github.com/dutta-alankar/cloud-crushing_PLUTO/blob/main/PLUTO/userguide.pdf).
 
+https://github.com/user-attachments/assets/65cfb564-5b54-4d93-a006-d55625a77393
+
 ### Getting started
 - To set up the problem, one needs to run the Python script `prob-prepare.py` located in `python-scripts` directory in the repo (tested on Python version 3.11).
 - The following are the free parameters in the problem that can be set in the Python script.
